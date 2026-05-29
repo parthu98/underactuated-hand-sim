@@ -53,9 +53,9 @@ M_DIST = 0.00391 * SCALE**3
 
 # Passive Joint Mechanics (Stiffness & Damping per-joint)
 # Highly optimized staggered hierarchy to guarantee proximal-first (MCP) curling
-MCP_STIFFNESS = 1.0            # N·m/rad (compliant base joint, flexes first)
-PIP_STIFFNESS = 2.0           # N·m/rad (intermediate stiffness)
-DIP_STIFFNESS = 3.0           # N·m/rad (highest stiffness, resists early curling)
+MCP_STIFFNESS = 2.0            # N·m/rad (equal stiffness test case)
+PIP_STIFFNESS = 2.0           # N·m/rad (equal stiffness test case)
+DIP_STIFFNESS = 2.0           # N·m/rad (equal stiffness test case)
 
 MCP_DAMPING = 0.08              # N·m·s/rad (stabilizing viscous damping)
 PIP_DAMPING = 0.08              # N·m·s/rad
@@ -68,7 +68,7 @@ TENDON_DAMPING = 1.0            # Viscous damping on the tendon itself for stabi
 # Anatomical Hinge Joint Limits (Degrees of curling flexion towards +X)
 MCP_LIMIT_MIN = -5.0            # MCP slight hyperextension limit
 MCP_LIMIT_MAX = 90.0            # Max MCP flexion limit
-PIP_LIMIT_MAX = 100.0           # Max PIP flexion limit
+PIP_LIMIT_MAX = 110.0           # Max PIP flexion limit
 DIP_LIMIT_MAX = 90.0            # Max DIP flexion limit
 
 # Derived Tendon Routing Coordinates (Scalable, close to palm-side surfaces)
