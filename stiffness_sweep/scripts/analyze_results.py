@@ -43,6 +43,8 @@ def main():
     rmse_grid = np.zeros((n_ratios, n_ratios))
     max_err_grid = np.zeros((n_ratios, n_ratios))
     tension_grid = np.zeros((n_ratios, n_ratios))
+    err12_grid = np.zeros((n_ratios, n_ratios))
+    err32_grid = np.zeros((n_ratios, n_ratios))
     
     csv_path = os.path.join(SYS_SWEEP_DIR, 'results', 'summary.csv')
     if not os.path.exists(csv_path):
@@ -61,13 +63,15 @@ def main():
             theta1_grid[i, j] = float(row['theta1_final'])
             theta2_grid[i, j] = float(row['theta2_final'])
             theta3_grid[i, j] = float(row['theta3_final'])
-            ratio12_grid[i, j] = float(row['theta12_ratio'])
-            ratio32_grid[i, j] = float(row['theta32_ratio'])
+            ratio12_grid[i, j] = float(row['theta12_ratio_simulation'])
+            ratio32_grid[i, j] = float(row['theta32_ratio_simulation'])
             workspace_grid[i, j] = float(row['workspace_area'])
             path_grid[i, j] = float(row['path_length'])
             rmse_grid[i, j] = float(row['rmse'])
             max_err_grid[i, j] = float(row['max_error'])
             tension_grid[i, j] = float(row['tension_final'])
+            err12_grid[i, j] = float(row['theta12_ratio_error'])
+            err32_grid[i, j] = float(row['theta32_ratio_error'])
             
     # Create plots directory
     plots_dir = os.path.join(SYS_SWEEP_DIR, 'results', 'plots')
@@ -201,6 +205,28 @@ def main():
         fmt='%.1f'
     )
     
+    # 7. Morphology Error (theta1/theta2)
+    save_heatmap(
+        grid=err12_grid,
+        title="Morphology Preservation Error\n(theta1/theta2)",
+        filename="heatmap_theta12_ratio_error.png",
+        cbar_label="Error",
+        cmap="magma",
+        scale=1.0,
+        fmt='%.3f'
+    )
+    
+    # 8. Morphology Error (theta3/theta2)
+    save_heatmap(
+        grid=err32_grid,
+        title="Morphology Preservation Error\n(theta3/theta2)",
+        filename="heatmap_theta32_ratio_error.png",
+        cbar_label="Error",
+        cmap="magma",
+        scale=1.0,
+        fmt='%.3f'
+    )
+    
     # 5. Print a concise analytical insight report based on grids
     print("\n" + "=" * 60)
     print("  STIFFNESS SWEEP FRAMEWORK - ANALYTICAL FINDINGS  ")
@@ -243,6 +269,33 @@ def main():
     print(f"     * Analysis: The linear analytical model predicts joint angles with high accuracy")
     print(f"       at moderate joint ratios, but errors grow substantially under extreme ratios")
     print(f"       due to non-linear physical interactions like joint limits and spatial tendon slack.")
+    print("")
+    
+    print(f"4. Morphology Preservation Validation:")
+    min_err12_idx = np.unravel_index(np.argmin(err12_grid), err12_grid.shape)
+    max_err12_idx = np.unravel_index(np.argmax(err12_grid), err12_grid.shape)
+    
+    min_err32_idx = np.unravel_index(np.argmin(err32_grid), err32_grid.shape)
+    max_err32_idx = np.unravel_index(np.argmax(err32_grid), err32_grid.shape)
+    
+    print(f"   theta1/theta2 Error:")
+    print(f"   - Min Error:  {err12_grid[min_err12_idx]:.3f} at (rho1={ratios[min_err12_idx[0]]}, rho3={ratios[min_err12_idx[1]]})")
+    print(f"   - Max Error:  {err12_grid[max_err12_idx]:.3f} at (rho1={ratios[max_err12_idx[0]]}, rho3={ratios[max_err12_idx[1]]})")
+    print(f"   - Mean Error: {np.mean(err12_grid):.3f}")
+    print(f"")
+    print(f"   theta3/theta2 Error:")
+    print(f"   - Min Error:  {err32_grid[min_err32_idx]:.3f} at (rho1={ratios[min_err32_idx[0]]}, rho3={ratios[min_err32_idx[1]]})")
+    print(f"   - Max Error:  {err32_grid[max_err32_idx]:.3f} at (rho1={ratios[max_err32_idx[0]]}, rho3={ratios[max_err32_idx[1]]})")
+    print(f"   - Mean Error: {np.mean(err32_grid):.3f}")
+    print(f"")
+    
+    # Calculate overall best/worst by average of the two percentage errors
+    avg_err_grid = (err12_grid + err32_grid) / 2.0
+    best_morph_idx = np.unravel_index(np.argmin(avg_err_grid), avg_err_grid.shape)
+    worst_morph_idx = np.unravel_index(np.argmax(avg_err_grid), avg_err_grid.shape)
+    
+    print(f"   - Best configuration for morphology preservation: (rho1={ratios[best_morph_idx[0]]}, rho3={ratios[best_morph_idx[1]]}) with {avg_err_grid[best_morph_idx]:.3f} avg ratio error")
+    print(f"   - Worst configuration for morphology preservation: (rho1={ratios[worst_morph_idx[0]]}, rho3={ratios[worst_morph_idx[1]]}) with {avg_err_grid[worst_morph_idx]:.3f} avg ratio error")
     print("=" * 60)
     print("Analysis complete.")
 

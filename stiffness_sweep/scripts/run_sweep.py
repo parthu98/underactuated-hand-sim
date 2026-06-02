@@ -49,7 +49,8 @@ def main():
     csv_header = [
         'rho1', 'rho3',
         'theta1_final', 'theta2_final', 'theta3_final',
-        'theta12_ratio', 'theta32_ratio',
+        'theta12_ratio_analytical', 'theta12_ratio_simulation', 'theta12_ratio_error',
+        'theta32_ratio_analytical', 'theta32_ratio_simulation', 'theta32_ratio_error',
         'workspace_area', 'path_length',
         'rmse', 'max_error',
         'tension_final'
@@ -80,8 +81,8 @@ def main():
             theta2_final = history['theta2'][-1]
             theta3_final = history['theta3'][-1]
             
-            theta12_ratio = theta1_final / theta2_final if abs(theta2_final) > 1e-5 else 0.0
-            theta32_ratio = theta3_final / theta2_final if abs(theta2_final) > 1e-5 else 0.0
+            theta12_ratio_simulation = theta1_final / theta2_final if abs(theta2_final) > 1e-5 else 0.0
+            theta32_ratio_simulation = theta3_final / theta2_final if abs(theta2_final) > 1e-5 else 0.0
             
             # Fingertip path length
             x = np.array(history['x_tip'])
@@ -107,11 +108,24 @@ def main():
             rmse = np.sqrt(np.mean(errors ** 2))
             max_error = np.max(np.abs(errors))
             
+            # Analytical ratios at final state
+            theta1_ana_final = theta_analytical[0, -1]
+            theta2_ana_final = theta_analytical[1, -1]
+            theta3_ana_final = theta_analytical[2, -1]
+            
+            theta12_ratio_analytical = theta1_ana_final / theta2_ana_final if abs(theta2_ana_final) > 1e-5 else 0.0
+            theta32_ratio_analytical = theta3_ana_final / theta2_ana_final if abs(theta2_ana_final) > 1e-5 else 0.0
+            
+            # Morphology errors (absolute difference)
+            theta12_ratio_error = abs(theta12_ratio_simulation - theta12_ratio_analytical)
+            theta32_ratio_error = abs(theta32_ratio_simulation - theta32_ratio_analytical)
+            
             # Save row to CSV
             row = [
                 rho1, rho3,
                 theta1_final, theta2_final, theta3_final,
-                theta12_ratio, theta32_ratio,
+                theta12_ratio_analytical, theta12_ratio_simulation, theta12_ratio_error,
+                theta32_ratio_analytical, theta32_ratio_simulation, theta32_ratio_error,
                 workspace_area, path_length,
                 rmse, max_error,
                 tension_final

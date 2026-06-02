@@ -82,10 +82,23 @@ def run_case(rho1, rho3, generate_plot=False):
     rmse = np.sqrt(np.mean(errors ** 2))
     max_error = np.max(np.abs(errors))
     
+    # Analytical ratios at final state
+    theta1_ana_final = theta_analytical[0, -1]
+    theta2_ana_final = theta_analytical[1, -1]
+    theta3_ana_final = theta_analytical[2, -1]
+    
+    theta12_ratio_ana = theta1_ana_final / theta2_ana_final if abs(theta2_ana_final) > 1e-5 else 0.0
+    theta32_ratio_ana = theta3_ana_final / theta2_ana_final if abs(theta2_ana_final) > 1e-5 else 0.0
+    
+    # Morphology errors (absolute difference)
+    theta12_error = abs(theta12_ratio - theta12_ratio_ana)
+    theta32_error = abs(theta32_ratio - theta32_ratio_ana)
+        
     # 6. Print Results
     print("--- RESULTS SUMMARY ---")
     print(f"Final Joint Angles:  MCP={theta1_final:6.2f}° | PIP={theta2_final:6.2f}° | DIP={theta3_final:6.2f}°")
-    print(f"Joint Angle Ratios:  theta1/theta2={theta12_ratio:.4f} | theta3/theta2={theta32_ratio:.4f}")
+    print(f"Joint Angle Ratios:  theta1/theta2={theta12_ratio:.4f} (Ana: {theta12_ratio_ana:.4f}, Err: {theta12_error:.4f})")
+    print(f"                     theta3/theta2={theta32_ratio:.4f} (Ana: {theta32_ratio_ana:.4f}, Err: {theta32_error:.4f})")
     print(f"Workspace Metrics:   Path Length={path_length*1000:6.2f} mm | Area={workspace_area*1e6:8.2f} mm^2")
     print(f"Tendon Force:        Final Tension={tension_final:6.2f} N")
     print(f"Analytical Error:    RMSE={rmse:6.3f}° | Max Error={max_error:6.3f}°")
