@@ -1,9 +1,11 @@
+import os
 import mujoco
 import numpy as np
 
+HERE = os.path.dirname(os.path.abspath(__file__))
+
 def run_test(mcp_k, pip_k, dip_k):
-    # Load base XML
-    xml = open('/home/namit/iitgn/mujoco_simulations/3R_FINGER_MUJOCO/finger.xml').read()
+    xml = open(os.path.join(HERE, 'finger.xml')).read()
     
     # We will just forcefully replace the stiffnesses in the XML string for testing
     import re
