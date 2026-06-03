@@ -1,3 +1,4 @@
+#!/home/namit/iitgn/mujoco_env/bin/python
 import sys
 import os
 import time

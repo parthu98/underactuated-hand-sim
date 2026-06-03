@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/home/namit/iitgn/mujoco_env/bin/python
 """
 Stiffness-Ratio Trend Validation for 3R Underactuated Tendon-Driven Finger
 ===========================================================================
