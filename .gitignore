@@ -35,5 +35,6 @@ logs/*
 high_fidelity/finger.xml
 high_fidelity/_finger_fidelity.xml
 gripper/gripper.xml
+gripper/load_test.xml
 .dual-graph/
 .dual-graph-context/

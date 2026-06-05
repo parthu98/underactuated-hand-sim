@@ -187,4 +187,47 @@ GRIPPER_OBJECT_LENGTH_MM = 40.0       # cylinder half-length (along X) / box hal
 GRIPPER_OBJECT_SIZE_RANGE_MM = (4.0, 80.0)     # UI size bounds (radius up to 80 mm)
 GRIPPER_OBJECT_LENGTH_RANGE_MM = (4.0, 120.0)  # UI length bounds
 GRIPPER_OBJECT_DEPTH_Z = 0.075        # m — default object depth between the fingers
-GRIPPER_OBJECT_DEPTH_RANGE = (0.040, 0.150)  # m — UI depth-slider bounds (envelope↔pinch)
+
+# =====================================================================
+# 8. LOAD TEST — horizontal gripper pull-out test
+#    (gripper/interactive_load_test.py — single self-contained file).
+#    Two fingers extend along +X (horizontal), gripping an object that
+#    can slide freely along X. A motor actuator applies a controllable
+#    extraction force T to measure grip retention for a given stiffness
+#    ratio.
+# =====================================================================
+LOAD_TEST_SLIDE_RANGE = (-0.01, 0.15)   # m — object slide joint limits along X
+LOAD_TEST_SLIDE_DAMPING = 0.5           # N·s/m — light viscous drag on the slide
+LOAD_TEST_OBJECT_MASS_KG = 0.050        # kg — object mass (50 g default)
+LOAD_TEST_MAX_TENSION = 300.0           # N — pull-force ceiling (T slider + motor ctrlrange).
+# Sized for the ~441 N/finger servo cap below, which holds ~200 N at the default
+# grasp; raise this if a deeper/stronger grasp never fails within the slider range.
+
+# Where along +X the object sits relative to the finger bases (set at build time;
+# the panel has no live depth slider — depth defines the grasp TYPE, so relaunch
+# to change it). This is the load test's OWN depth (separate from the static
+# gripper's GRIPPER_OBJECT_DEPTH_Z): a deep/ENVELOPING grasp (~50 mm) wraps the
+# object and holds a real pull-out load, whereas a shallow fingertip PINCH (~75+
+# mm) resists by friction alone and slips almost immediately. The object must
+# still FIT the aperture: aperture/2 - 0.013 >= radius, else the fingers start
+# embedded in it and contact forces explode.
+LOAD_TEST_OBJECT_DEPTH_X = 0.050        # m — default: an enveloping grasp that holds
+
+# ---- Actuator force limit (the "infinite grip" fix) -------------------------
+# A ΔL-displacement tendon is a near-rigid spring (TENDON_STIFFNESS ≈ 1e5 N/m),
+# so a finger blocked by the object resists with essentially UNBOUNDED force —
+# the grip would be "infinitely strong" and no external load could ever pull the
+# object out. A real tendon actuator (servo + string) can only output a finite
+# force. We cap the flexor tension at this ceiling (see
+# interactive_load_test.capped_lengthspring); once the pull T exceeds what the
+# capped grip can hold, the object slips and slides to the LOAD_TEST_SLIDE_RANGE end.
+#
+# The ceiling comes from the servo, which winds the tendon onto a spool of radius
+# LOAD_TEST_SPOOL_RADIUS:  tendon tension = servo_torque / spool_radius.
+# One servo per finger, so each flexor gets the full stall torque.
+#   Dynamixel XM430-W350-T: ~45 kgf·cm ≈ 4.41 N·m stall (max output).
+#   r_spool = 10 mm  →  F_max ≈ 441 N per finger.
+LOAD_TEST_SERVO_STALL_TORQUE = 4.41     # N·m — servo max output (Dynamixel XM430-W350-T, ~45 kgf·cm)
+LOAD_TEST_SPOOL_RADIUS = 0.010          # m — string winding radius at the servo horn
+LOAD_TEST_MAX_TENDON_FORCE = LOAD_TEST_SERVO_STALL_TORQUE / LOAD_TEST_SPOOL_RADIUS  # N — per-finger flexor force ceiling
+LOAD_TEST_MAX_FORCE_UI_MAX = 600.0      # N — upper bound of the live "F max" slider
