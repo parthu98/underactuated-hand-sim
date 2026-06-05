@@ -122,3 +122,69 @@ DELTA_L = 0.010         # m — tendon pull for the validation study
 EQUIL_MAX_TIME = 4.0    # s — convergence cap per equilibrium run
 VEL_TOL = 1.0e-3        # rad/s — settle threshold (free joints)
 SATURATION_TOL = 0.5    # deg from a joint limit that counts as saturated
+
+# =====================================================================
+# 7. GRIPPER — two-finger assembly (gripper/build_gripper.py +
+#    gripper/interactive_gripper.py). BOTH fingers reuse the shared joint
+#    stiffness/damping/ranges above, so a single MCP/PIP/DIP stiffness edit
+#    applies to BOTH fingers. The numbers here are gripper-only layout and
+#    default graspable-object parameters. The per-finger tendon physics is
+#    the SAME tested high-fidelity model (SHEATH_MOMENT_ARM, TENDON_STIFFNESS,
+#    TENDON_DAMPING, SIM_TIMESTEP, LIMIT_SOLREF/SOLIMP from sections 2-4).
+# =====================================================================
+GRIPPER_SEPARATION = 0.110            # m — default centre-to-centre finger gap (aperture)
+GRIPPER_SEPARATION_RANGE = (0.020, 0.200)  # m — UI aperture slider bounds
+# NOTE: the open finger half-thickness is ~13 mm, so the object must FIT the gap:
+# aperture/2 - 0.013 >= object radius, else the fingers start embedded in the
+# object at rest and contact forces explode. Keep the aperture wide enough.
+GRIPPER_MOUNT_HEIGHT = 0.040          # m — finger base height above the floor
+GRIPPER_GRAVITY_DEFAULT = False       # match the tested (gravity-free) fidelity model
+
+# Finger drive: each flexor is driven by ΔL — we shorten the tendon spring's rest
+# length (validation.py method: tendon_lengthspring = L_rest - ΔL). The stiff,
+# near-inextensible string (TENDON_STIFFNESS) then pulls the joints flexed. The
+# small gripper timestep + rigid contacts below keep this stable against the
+# static object (the displacement-vs-rigid-wall blow-up only happened at a coarse
+# timestep). Grip rises with ΔL; the string is stiff, so creep the slider.
+GRIPPER_MAX_PULL_MM = 40.0            # mm — per-finger ΔL slider/entry upper bound
+
+# Joint stiffness is taken from MCP/PIP/DIP_STIFFNESS (section 2) when the gripper
+# loads, and is live-overridable from the control panel (shared by both fingers)
+# for on-the-go testing of how the stiffness ratio affects grip. The override is
+# NOT persisted — relaunching reads the config values again.
+GRIPPER_STIFFNESS_MAX = 3.0          # N·m/rad — upper bound of the live stiffness sliders
+
+# Gripper sub-step timestep — SMALLER than the morphology model's SIM_TIMESTEP so
+# the contacts can be made near-rigid (a contact's stiffness is capped at ≈ 2×
+# timestep, so a coarse step lets the finger punch transiently into the object
+# during a hard close — the "cutting in"). The interactive viewer sub-steps to
+# stay real-time. With this, peak penetration stays < ~0.35 mm even at 200+ N.
+GRIPPER_TIMESTEP = 0.00025            # s
+
+# Near-rigid contacts — the research-backed recipe for stable MuJoCo grasping:
+#   * solref ≈ 2×timestep, solimp dmin→1   -> rigid from first contact (no "mush"),
+#   * cone="elliptic" + impratio>1         -> stiff friction, objects don't slip,
+#   * condim=6 + torsional/rolling friction -> round objects don't spin/roll out.
+# (See MuJoCo docs "Contact" + the Menagerie Robotiq/hand grasping threads.)
+GRIPPER_CONTACT_SOLREF = "0.0005 1"   # ≈ 2×GRIPPER_TIMESTEP, stiffest stable
+GRIPPER_CONTACT_SOLIMP = "0.99 0.9999 0.0001 0.5 2"   # dmin→1: rigid boundary
+GRIPPER_CONTACT_CONDIM = 6            # 6 = normal + slide + torsional + rolling
+GRIPPER_CONTACT_FRICTION = "1 0.1 0.01"   # slide, torsional, rolling
+GRIPPER_FRICTION_CONE = "elliptic"    # elliptic + impratio is the anti-slip combo
+GRIPPER_IMPRATIO = 10.0               # raise (→50-200) for firmer free-object load tests
+
+# Probe object (live-editable from the control panel). It is WELDED in space
+# (a static body, no joint) so the fingers press against an immovable target —
+# the point is to study how the joint stiffness ratio affects grip, not to lift
+# a free object. Only its depth between the fingers is adjustable, along world Z:
+#   low Z  -> deep in the palm  (enveloping grasp)
+#   high Z -> out at the fingertips (pinch grasp)
+# The cylinder lies along X so the fingers wrap its circular cross-section.
+GRIPPER_OBJECT_ENABLED = True
+GRIPPER_OBJECT_SHAPE = "cylinder"     # box | cylinder | sphere
+GRIPPER_OBJECT_SIZE_MM = 35.0         # radius / box half-width
+GRIPPER_OBJECT_LENGTH_MM = 40.0       # cylinder half-length (along X) / box half-height
+GRIPPER_OBJECT_SIZE_RANGE_MM = (4.0, 80.0)     # UI size bounds (radius up to 80 mm)
+GRIPPER_OBJECT_LENGTH_RANGE_MM = (4.0, 120.0)  # UI length bounds
+GRIPPER_OBJECT_DEPTH_Z = 0.075        # m — default object depth between the fingers
+GRIPPER_OBJECT_DEPTH_RANGE = (0.040, 0.150)  # m — UI depth-slider bounds (envelope↔pinch)
