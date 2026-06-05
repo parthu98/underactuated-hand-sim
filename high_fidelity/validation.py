@@ -78,13 +78,13 @@ LINK_LENGTHS = None  # set at runtime by extract_kinematics_from_model
 
 
 def pct_err(sim, ana):
-    """Signed percentage error of a morphology metric:  (sim − ana)/ana × 100.
+    """Absolute percentage error of a morphology metric:  |sim − ana|/ana × 100.
 
     Returns NaN where the analytical reference is undefined or ~0 (so the
     heatmap shows a blank cell rather than a blow-up)."""
     if not (np.isfinite(sim) and np.isfinite(ana)) or abs(ana) < 1e-9:
         return np.nan
-    return (sim - ana) / ana * 100.0
+    return abs(sim - ana) / ana * 100.0
 
 ANA_COLOR = '#1F4E79'
 SIM_COLOR = '#C0392B'
