@@ -67,7 +67,7 @@ import mujoco
 import mujoco.viewer
 
 import tkinter as tk
-from tkinter import ttk
+import customtkinter as ctk
 from collections import deque
 
 import matplotlib
@@ -301,20 +301,14 @@ def generate_load_test_xml(out_path=XML_PATH, *, separation=None,
     <site group="3"/>
   </default>
 
+  <include file="{os.path.join(_REPO_ROOT, 'scene.xml')}"/>
   <asset>
     <mesh name="proximal_mesh" file="proximal.stl"/>
     <mesh name="middle_mesh"   file="middle.stl"/>
     <mesh name="distal_mesh"   file="distal.stl"/>
-    <texture name="grid" type="2d" builtin="checker" rgb1="0.2 0.25 0.3" rgb2="0.15 0.18 0.22"
-             width="300" height="300"/>
-    <material name="grid" texture="grid" texrepeat="6 6" reflectance="0.1"/>
   </asset>
 
   <worldbody>
-    <light pos="0 -0.3 0.6" dir="0 0.5 -1" diffuse="0.9 0.9 0.9"/>
-    <light pos="0.2 0.3 0.5" dir="-0.3 -0.4 -1" diffuse="0.5 0.5 0.5"/>
-    <geom name="floor" type="plane" size="0.6 0.6 0.05" pos="0 0 0" material="grid"
-          contype="1" conaffinity="1"/>
 {finger_a}
 {finger_b}
 
@@ -418,6 +412,7 @@ class GripperState:
         self.aperture = config.GRIPPER_SEPARATION       # m
         self.obj_enabled = config.GRIPPER_OBJECT_ENABLED
         self.obj_shape = config.GRIPPER_OBJECT_SHAPE
+        self.obj_rotated = False
         self.obj_size_mm = config.GRIPPER_OBJECT_SIZE_MM
         self.obj_len_mm = config.GRIPPER_OBJECT_LENGTH_MM
         self.obj_depth_x = config.LOAD_TEST_OBJECT_DEPTH_X  # m — build-time X anchor
@@ -432,7 +427,8 @@ class GripperState:
                 reset=self.reset, link=self.link, dL=dict(self.dL),
                 stiffness=dict(self.stiffness),
                 aperture=self.aperture, obj_enabled=self.obj_enabled,
-                obj_shape=self.obj_shape, obj_size_mm=self.obj_size_mm,
+                obj_shape=self.obj_shape, obj_rotated=self.obj_rotated,
+                obj_size_mm=self.obj_size_mm,
                 obj_len_mm=self.obj_len_mm, obj_depth_x=self.obj_depth_x,
                 gravity=self.gravity, tension=self.tension,
                 max_force=self.max_force)
@@ -498,12 +494,25 @@ def _apply(model, data, ids, cur, snap):
         model.geom_contype[g] = 1 if on else 0
         model.geom_conaffinity[g] = 1 if on else 0
         if on:
+            import math
             if shp == "box":
                 model.geom_size[g] = (s_m, s_m, L_m)
+                model.geom_rbound[g] = math.sqrt(2 * s_m**2 + L_m**2)
+                if snap.obj_rotated:
+                    model.geom_quat[g] = (0.70710678, 0.0, 0.70710678, 0.0)
+                else:
+                    model.geom_quat[g] = (1.0, 0.0, 0.0, 0.0)
             elif shp == "cylinder":
                 model.geom_size[g] = (s_m, L_m, 0.0)
+                model.geom_rbound[g] = math.sqrt(s_m**2 + L_m**2)
+                if snap.obj_rotated:
+                    model.geom_quat[g] = (0.0, 0.0, 1.0, 0.0)
+                else:
+                    model.geom_quat[g] = (0.70710678, 0.0, 0.70710678, 0.0)
             else:                       # sphere
                 model.geom_size[g] = (s_m, 0.0, 0.0)
+                model.geom_rbound[g] = s_m
+                model.geom_quat[g] = (1.0, 0.0, 0.0, 0.0)
 
     # live joint-stiffness override (shared by both fingers); not persisted
     for f in "ab":
@@ -614,38 +623,42 @@ def _safe_get(var):
 
 
 def _slider_entry(parent, label, lo, hi, init, resolution, on_value):
-    """A labelled row: tk.Scale + ttk.Entry sharing one DoubleVar. Returns the
-    var. `on_value(v)` is called with the float whenever it changes validly."""
     var = tk.DoubleVar(value=init)
-    row = ttk.Frame(parent)
-    row.pack(fill="x", pady=1)
-    ttk.Label(row, text=label, width=11).pack(side="left")
-    scale = tk.Scale(row, from_=lo, to=hi, resolution=resolution,
-                     orient="horizontal", variable=var, showvalue=False,
-                     length=210, sliderlength=16)
-    scale.pack(side="left", fill="x", expand=True, padx=(2, 4))
-    ttk.Entry(row, width=7, textvariable=var).pack(side="left")
+    row = ctk.CTkFrame(parent, fg_color="transparent")
+    row.pack(fill="x", pady=2)
+    ctk.CTkLabel(row, text=label, width=80, anchor="w").pack(side="left")
+    
+    scale = ctk.CTkSlider(row, from_=lo, to=hi)
+    scale.set(init)
+    scale.pack(side="left", fill="x", expand=True, padx=(5, 10))
+    entry = ctk.CTkEntry(row, width=60, textvariable=var)
+    entry.pack(side="left")
 
     def _cb(*_):
         v = _safe_get(var)
         if v is not None:
+            v = max(lo, min(hi, v))
+            scale.set(v)
             on_value(v)
+            
+    def _slider_cb(v):
+        var.set(round(float(v), 3))
+        
+    scale.configure(command=_slider_cb)
     var.trace_add("write", _cb)
     return var
 
 
 def build_ui(state):
-    root = tk.Tk()
+    ctk.set_appearance_mode("Dark")
+    ctk.set_default_color_theme("blue")
+    root = ctk.CTk()
     root.title("Load Test — Gripper Pull-Out")
-    root.minsize(360, 0)
-    try:
-        ttk.Style().theme_use("clam")
-    except tk.TclError:
-        pass
+    root.minsize(420, 0)
 
-    pad = dict(padx=8, pady=(6, 0))
-    guard = {"on": False}        # reentrancy guard for finger linking
-    active_finger = {"f": "a"}   # which finger the keyboard jogs
+    pad = dict(padx=10, pady=(10, 0))
+    guard = {"on": False}
+    active_finger = {"f": "a"}
 
     def set_state(**kw):
         with state.lock:
@@ -661,13 +674,15 @@ def build_ui(state):
             state.stiffness[joint] = max(0.0, val)
 
     # ---- Movement mode -------------------------------------------------
-    mode = ttk.LabelFrame(root, text="Movement mode")
-    mode.pack(fill="x", **pad)
+    mode_f = ctk.CTkFrame(root)
+    mode_f.pack(fill="x", **pad)
+    ctk.CTkLabel(mode_f, text="Movement mode", font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=10, pady=(5, 0))
     link_var = tk.BooleanVar(value=state.link)
 
-    # ---- Finger drive (tendon pull ΔL) ---------------------------------
-    flex = ttk.LabelFrame(root, text="Finger drive  —  tendon pull ΔL (mm)")
-    flex.pack(fill="x", **pad)
+    # ---- Finger drive ---------------------------------
+    flex_f = ctk.CTkFrame(root)
+    flex_f.pack(fill="x", **pad)
+    ctk.CTkLabel(flex_f, text="Finger drive — tendon pull ΔL (mm)", font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=10, pady=(5, 0))
 
     def on_fa(v):
         set_dL("a", v)
@@ -685,86 +700,72 @@ def build_ui(state):
             guard["on"] = False
             set_dL("a", v)
 
-    fa_var = _slider_entry(flex, "Finger A", 0.0, MAX_PULL_MM, 0.0, 0.1, on_fa)
-    fb_var = _slider_entry(flex, "Finger B", 0.0, MAX_PULL_MM, 0.0, 0.1, on_fb)
+    fa_var = _slider_entry(flex_f, "Finger A", 0.0, MAX_PULL_MM, 0.0, 0.1, on_fa)
+    fb_var = _slider_entry(flex_f, "Finger B", 0.0, MAX_PULL_MM, 0.0, 0.1, on_fb)
 
     def on_link():
         set_state(link=link_var.get())
-        if link_var.get():                 # snap B to A on (re)link
+        if link_var.get():
             v = _safe_get(fa_var) or 0.0
             fb_var.set(round(v, 2))
             set_dL("b", v)
-    ttk.Checkbutton(mode, text="Simultaneous  (link both fingers)",
-                    variable=link_var, command=on_link).pack(side="left", padx=6, pady=4)
+    ctk.CTkCheckBox(mode_f, text="Simultaneous (link both fingers)", variable=link_var, command=on_link).pack(side="left", padx=10, pady=10)
 
-    # ---- Joint stiffness (live, shared by both fingers) ----------------
-    stf = ttk.LabelFrame(root, text="Joint stiffness  —  live, shared (N·m/rad)")
-    stf.pack(fill="x", **pad)
+    # ---- Joint stiffness ----------------
+    stf_f = ctk.CTkFrame(root)
+    stf_f.pack(fill="x", **pad)
+    ctk.CTkLabel(stf_f, text="Joint stiffness — shared (N·m/rad)", font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=10, pady=(5, 0))
     for jn in JOINT_NAMES:
-        _slider_entry(stf, jn.upper(), 0.0, STIFF_MAX, STIFF_DEFAULT[jn], 0.01,
-                      lambda v, j=jn: set_stiffness(j, v))
-    ttk.Label(stf, text="(not saved — loads from config.py each launch)",
-              foreground="#555").pack(anchor="w", padx=6, pady=(0, 4))
+        _slider_entry(stf_f, jn.upper(), 0.0, STIFF_MAX, STIFF_DEFAULT[jn], 0.01, lambda v, j=jn: set_stiffness(j, v))
+    ctk.CTkLabel(stf_f, text="(not saved — loads from config.py each launch)", text_color="gray").pack(anchor="w", padx=10, pady=(0, 5))
 
     # ---- Aperture ------------------------------------------------------
-    aper = ttk.LabelFrame(root, text="Aperture  —  centre-to-centre gap (mm)")
-    aper.pack(fill="x", **pad)
-    aper_var = _slider_entry(aper, "Aperture", APER_MIN_MM, APER_MAX_MM,
-                             config.GRIPPER_SEPARATION * 1000, 1.0,
-                             lambda v: set_state(aperture=v / 1000.0))
+    aper_f = ctk.CTkFrame(root)
+    aper_f.pack(fill="x", **pad)
+    ctk.CTkLabel(aper_f, text="Aperture (mm)", font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=10, pady=(5, 0))
+    aper_var = _slider_entry(aper_f, "Gap", APER_MIN_MM, APER_MAX_MM, config.GRIPPER_SEPARATION * 1000, 1.0, lambda v: set_state(aperture=v / 1000.0))
 
     # ---- Probe object --------------------------------------------------
-    obj = ttk.LabelFrame(root, text="Probe object  (slides freely along depth axis)")
-    obj.pack(fill="x", **pad)
+    obj_f = ctk.CTkFrame(root)
+    obj_f.pack(fill="x", **pad)
+    ctk.CTkLabel(obj_f, text="Probe object", font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=10, pady=(5, 0))
 
-    top = ttk.Frame(obj)
-    top.pack(fill="x", pady=2)
+    top = ctk.CTkFrame(obj_f, fg_color="transparent")
+    top.pack(fill="x", pady=2, padx=10)
     obj_en = tk.BooleanVar(value=state.obj_enabled)
-    ttk.Checkbutton(top, text="Enabled", variable=obj_en,
-                    command=lambda: set_state(obj_enabled=obj_en.get())
-                    ).pack(side="left", padx=4)
-    ttk.Label(top, text="Shape").pack(side="left", padx=(10, 2))
-    shape_var = tk.StringVar(value=state.obj_shape)
-    ttk.Combobox(top, textvariable=shape_var, values=SHAPES, width=9,
-                 state="readonly").pack(side="left")
-    shape_var.trace_add("write",
-                        lambda *_: set_state(obj_shape=shape_var.get()))
+    ctk.CTkCheckBox(top, text="Enabled", variable=obj_en, command=lambda: set_state(obj_enabled=obj_en.get())).pack(side="left", padx=(0, 10))
+    
+    ctk.CTkLabel(top, text="Shape:").pack(side="left", padx=(5, 2))
+    shape_var = ctk.StringVar(value=state.obj_shape)
+    shape_cb = ctk.CTkComboBox(top, variable=shape_var, values=SHAPES, width=100, command=lambda v: set_state(obj_shape=v))
+    shape_cb.pack(side="left", padx=5)
 
-    _slider_entry(obj, "Size r", SIZE_MIN_MM, SIZE_MAX_MM,
-                  config.GRIPPER_OBJECT_SIZE_MM, 0.5,
-                  lambda v: set_state(obj_size_mm=v))
-    _slider_entry(obj, "Length", LEN_MIN_MM, LEN_MAX_MM,
-                  config.GRIPPER_OBJECT_LENGTH_MM, 0.5,
-                  lambda v: set_state(obj_len_mm=v))
-    # NOTE: no "Depth" slider — depth is set at build time; the object slides
-    # freely during the simulation via its slide joint.
+    rot_var = tk.BooleanVar(value=state.obj_rotated)
+    ctk.CTkCheckBox(top, text="Rotate 90° (Y)", variable=rot_var, command=lambda: set_state(obj_rotated=rot_var.get())).pack(side="left", padx=10)
 
-    # ---- External load (string tension T) ------------------------------
-    load = ttk.LabelFrame(root, text="External load  (string tension T)")
-    load.pack(fill="x", **pad)
-    tension_var = _slider_entry(load, "T [N]", 0.0, MAX_TENSION, 0.0, 0.5,
-                                lambda v: set_state(tension=v))
-    ttk.Label(load, text="Increase T until the object slides → load capacity",
-              foreground="#555").pack(anchor="w", padx=6, pady=(0, 4))
+    _slider_entry(obj_f, "Size r", SIZE_MIN_MM, SIZE_MAX_MM, config.GRIPPER_OBJECT_SIZE_MM, 0.5, lambda v: set_state(obj_size_mm=v))
+    _slider_entry(obj_f, "Length", LEN_MIN_MM, LEN_MAX_MM, config.GRIPPER_OBJECT_LENGTH_MM, 0.5, lambda v: set_state(obj_len_mm=v))
 
-    # ---- Actuator limit (flexor force ceiling) -------------------------
-    act = ttk.LabelFrame(root, text="Actuator limit  —  max flexor force (placeholder)")
-    act.pack(fill="x", **pad)
-    force_var = _slider_entry(act, "F max [N]", 1.0, MAX_FORCE_UI,
-                              config.LOAD_TEST_MAX_TENDON_FORCE, 1.0,
-                              lambda v: set_state(max_force=max(0.1, v)))
-    ttk.Label(act, text="ΔL grip force is otherwise unbounded; this caps each "
-              "flexor so the object slips once T exceeds what F max can hold.",
-              foreground="#555", wraplength=330, justify="left"
-              ).pack(anchor="w", padx=6, pady=(0, 4))
+    # ---- External load -------------------------------------------------
+    load_f = ctk.CTkFrame(root)
+    load_f.pack(fill="x", **pad)
+    ctk.CTkLabel(load_f, text="External load (string tension T)", font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=10, pady=(5, 0))
+    tension_var = _slider_entry(load_f, "T [N]", 0.0, MAX_TENSION, 0.0, 0.5, lambda v: set_state(tension=v))
+    ctk.CTkLabel(load_f, text="Increase T until the object slides → load capacity", text_color="gray").pack(anchor="w", padx=10, pady=(0, 5))
+
+    # ---- Actuator limit ------------------------------------------------
+    act_f = ctk.CTkFrame(root)
+    act_f.pack(fill="x", **pad)
+    ctk.CTkLabel(act_f, text="Actuator limit — max flexor force", font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=10, pady=(5, 0))
+    force_var = _slider_entry(act_f, "F max [N]", 1.0, MAX_FORCE_UI, config.LOAD_TEST_MAX_TENDON_FORCE, 1.0, lambda v: set_state(max_force=max(0.1, v)))
+    ctk.CTkLabel(act_f, text="Caps flexor force so the object can slip once T exceeds capacity.", text_color="gray", wraplength=380, justify="left").pack(anchor="w", padx=10, pady=(0, 5))
 
     # ---- Scene ---------------------------------------------------------
-    scene = ttk.LabelFrame(root, text="Scene")
-    scene.pack(fill="x", **pad)
+    scene_f = ctk.CTkFrame(root)
+    scene_f.pack(fill="x", **pad)
+    
     grav_var = tk.BooleanVar(value=state.gravity)
-    ttk.Checkbutton(scene, text="Gravity", variable=grav_var,
-                    command=lambda: set_state(gravity=grav_var.get())
-                    ).pack(side="left", padx=6, pady=4)
+    ctk.CTkCheckBox(scene_f, text="Gravity", variable=grav_var, command=lambda: set_state(gravity=grav_var.get())).pack(side="left", padx=10, pady=10)
 
     def do_reset():
         guard["on"] = True
@@ -776,19 +777,24 @@ def build_ui(state):
         set_dL("b", 0.0)
         set_state(tension=0.0, reset=True)
 
-    ttk.Button(scene, text="Reset", command=do_reset).pack(side="left", padx=4)
-
+    ctk.CTkButton(scene_f, text="Reset", width=80, command=do_reset).pack(side="left", padx=5, pady=10)
     def on_close():
         set_state(running=False)
         root.destroy()
-    ttk.Button(scene, text="Quit", command=on_close).pack(side="left", padx=4)
+    ctk.CTkButton(scene_f, text="Quit", width=80, fg_color="#C0392B", hover_color="#922B21", command=on_close).pack(side="left", padx=5, pady=10)
 
-    # ---- Live readout + dashboard plot --------------------------------
-    read = ttk.LabelFrame(root, text="Readout")
-    read.pack(fill="both", expand=True, **pad)
-    readout_var = tk.StringVar(value="(starting…)")
-    ttk.Label(read, textvariable=readout_var, font=("TkFixedFont", 9),
-              justify="left").pack(anchor="w", padx=6, pady=4)
+    hint = ("Hotkeys:  m link · 1/2 pick finger · ↑/↓ jog finger ΔL · "
+            "←/→ aperture · t/T jog tension · g gravity · o object · r reset · q quit")
+    ctk.CTkLabel(root, text=hint, text_color="gray", wraplength=380, justify="left").pack(fill="x", padx=10, pady=(10, 10))
+
+    # ---- Separate Plot Window -----------------------------------------
+    plot_win = ctk.CTkToplevel(root)
+    plot_win.title("Load Test Dashboard")
+    plot_win.geometry("550x550")
+    plot_win.protocol("WM_DELETE_WINDOW", lambda: None) # Prevent accidental closing
+    
+    readout_var = ctk.StringVar(value="(starting…)")
+    ctk.CTkLabel(plot_win, textvariable=readout_var, font=ctk.CTkFont(family="Courier", size=12), justify="left").pack(anchor="w", padx=10, pady=10)
 
     t_buf = deque(maxlen=300)
     grip_buf = deque(maxlen=300)
@@ -797,45 +803,39 @@ def build_ui(state):
     a_buf = deque(maxlen=300)
     b_buf = deque(maxlen=300)
 
-    fig = Figure(figsize=(4.4, 3.8), dpi=90)
+    fig = Figure(figsize=(5.5, 4.5), dpi=90)
+    fig.patch.set_facecolor('#2b2b2b') # match dark theme
     ax1 = fig.add_subplot(311)
     ax2 = fig.add_subplot(312, sharex=ax1)
     ax3 = fig.add_subplot(313, sharex=ax1)
     ax2_twin = ax2.twinx()
-    fig.subplots_adjust(left=0.17, right=0.85, top=0.93, bottom=0.12, hspace=0.55)
+    fig.subplots_adjust(left=0.15, right=0.85, top=0.95, bottom=0.1, hspace=0.5)
 
-    # Top: grip force
-    (grip_line,) = ax1.plot([], [], color="#C0392B", lw=1.6)
-    ax1.set_title("Grip force", fontsize=8)
-    ax1.set_ylabel("N", fontsize=8)
+    (grip_line,) = ax1.plot([], [], color="#E74C3C", lw=1.8)
+    ax1.set_title("Grip force (N)", fontsize=9, color='white')
+    ax1.set_ylabel("N", fontsize=8, color='white')
 
-    # Middle: tension T + object displacement (dual Y axis)
     (tension_line,) = ax2.plot([], [], color="#E67E22", lw=1.6)
     (objpos_line,) = ax2_twin.plot([], [], color="#3498DB", lw=1.3, ls="--")
     ax2.set_ylabel("T [N]", fontsize=8, color="#E67E22")
     ax2_twin.set_ylabel("obj [mm]", fontsize=8, color="#3498DB")
-    ax2.tick_params(axis="y", labelcolor="#E67E22")
-    ax2_twin.tick_params(axis="y", labelcolor="#3498DB")
 
-    # Bottom: per-finger total closure
-    (a_line,) = ax3.plot([], [], color="#1F4E79", lw=1.4, label="A")
-    (b_line,) = ax3.plot([], [], color="#2E8B57", lw=1.4, label="B")
-    ax3.set_ylabel("closure °", fontsize=8)
-    ax3.set_xlabel("time [s]", fontsize=8)
-    ax3.legend(fontsize=7, loc="upper left", ncol=2)
+    (a_line,) = ax3.plot([], [], color="#3498DB", lw=1.6, label="A")
+    (b_line,) = ax3.plot([], [], color="#2ECC71", lw=1.6, label="B")
+    ax3.set_ylabel("closure (°)", fontsize=8, color='white')
+    ax3.set_xlabel("time [s]", fontsize=8, color='white')
+    ax3.legend(fontsize=8, loc="upper left", ncol=2)
 
     for ax in (ax1, ax2, ax2_twin, ax3):
-        ax.grid(alpha=0.3)
-        ax.tick_params(labelsize=7)
+        ax.grid(alpha=0.2)
+        ax.tick_params(labelsize=8, colors='white')
+        ax.set_facecolor('#333333')
+        for spine in ax.spines.values():
+            spine.set_color('gray')
 
-    canvas = FigureCanvasTkAgg(fig, master=read)
-    canvas.get_tk_widget().pack(fill="both", expand=True, padx=4, pady=(0, 4))
+    canvas = FigureCanvasTkAgg(fig, master=plot_win)
+    canvas.get_tk_widget().pack(fill="both", expand=True, padx=5, pady=5)
     plot_t0 = time.time()
-
-    hint = ("Hotkeys:  m link · 1/2 pick finger · ↑/↓ jog finger ΔL · "
-            "←/→ aperture · t/T jog tension · g gravity · o object · r reset · q quit")
-    ttk.Label(root, text=hint, foreground="#666", wraplength=360,
-              justify="left").pack(fill="x", padx=8, pady=(4, 8))
 
     # ---- Keyboard ------------------------------------------------------
     def jog_finger(delta_mm):
@@ -844,25 +844,23 @@ def build_ui(state):
         v = max(0.0, min(MAX_PULL_MM, (_safe_get(var) or 0.0) + delta_mm))
         var.set(round(v, 2))
 
-    def jog_var(var, delta, lo, hi, scale=1.0):
+    def jog_var(var, delta, lo, hi):
         v = max(lo, min(hi, (_safe_get(var) or 0.0) + delta))
         var.set(round(v, 3))
 
     def bind(seq, fn):
         root.bind(seq, lambda e: fn())
+        plot_win.bind(seq, lambda e: fn())
 
     bind("<Key-m>", lambda: (link_var.set(not link_var.get()), on_link()))
     bind("<Key-1>", lambda: active_finger.__setitem__("f", "a"))
     bind("<Key-2>", lambda: active_finger.__setitem__("f", "b"))
     bind("<Up>", lambda: jog_finger(+0.5))
     bind("<Down>", lambda: jog_finger(-0.5))
-    bind("<Key-g>", lambda: (grav_var.set(not grav_var.get()),
-                             set_state(gravity=grav_var.get())))
-    bind("<Key-o>", lambda: (obj_en.set(not obj_en.get()),
-                             set_state(obj_enabled=obj_en.get())))
+    bind("<Key-g>", lambda: (grav_var.set(not grav_var.get()), set_state(gravity=grav_var.get())))
+    bind("<Key-o>", lambda: (obj_en.set(not obj_en.get()), set_state(obj_enabled=obj_en.get())))
     bind("<Left>", lambda: jog_var(aper_var, -2.0, APER_MIN_MM, APER_MAX_MM))
     bind("<Right>", lambda: jog_var(aper_var, +2.0, APER_MIN_MM, APER_MAX_MM))
-    # Tension jog: t / T (shift = bigger step), or + / -
     bind("<Key-t>", lambda: jog_var(tension_var, +1.0, 0.0, MAX_TENSION))
     bind("<Key-T>", lambda: jog_var(tension_var, +5.0, 0.0, MAX_TENSION))
     bind("<plus>", lambda: jog_var(tension_var, +1.0, 0.0, MAX_TENSION))
@@ -873,11 +871,11 @@ def build_ui(state):
 
     root.protocol("WM_DELETE_WINDOW", on_close)
 
-    # ---- Readout poll + lifecycle -------------------------------------
     def poll():
         with state.lock:
             running = state.running
             ro = dict(state.readout)
+            upper_limit = getattr(config, 'LOAD_TEST_MAX_FORCE_UI_MAX', state.max_force * 1.5)
         if not running:
             root.destroy()
             return
@@ -907,19 +905,26 @@ def build_ui(state):
             objpos_line.set_data(t_buf, objpos_buf)
             a_line.set_data(t_buf, a_buf)
             b_line.set_data(t_buf, b_buf)
+            
             for ax in (ax1, ax2, ax2_twin, ax3):
-                ax.relim()
-                ax.autoscale_view()
+                ax.set_xlim(max(0, t_buf[-1] - 30), t_buf[-1] + 1)
+
+            current_max_grip = max(grip_buf) if grip_buf else 0
+            ax1.set_ylim(0, min(max(current_max_grip * 1.1, 10), upper_limit))
+            
+            ax2.relim()
+            ax2.autoscale_view(scalex=False, scaley=True)
+            ax2_twin.relim()
+            ax2_twin.autoscale_view(scalex=False, scaley=True)
+            ax3.relim()
+            ax3.autoscale_view(scalex=False, scaley=True)
+
             canvas.draw_idle()
         root.after(100, poll)
 
     root.after(200, poll)
     return root
 
-
-# =====================================================================
-#  Entry points
-# =====================================================================
 def main():
     xml = generate_load_test_xml()
     print(f"[load_test] built {xml}")
@@ -956,7 +961,7 @@ def selftest():
             reset=False, link=False, dL={"a": dL, "b": dL},
             stiffness=dict(STIFF_DEFAULT), aperture=config.GRIPPER_SEPARATION,
             obj_enabled=True, obj_shape=config.GRIPPER_OBJECT_SHAPE,
-            obj_size_mm=config.GRIPPER_OBJECT_SIZE_MM,
+            obj_rotated=False, obj_size_mm=config.GRIPPER_OBJECT_SIZE_MM,
             obj_len_mm=config.GRIPPER_OBJECT_LENGTH_MM,
             obj_depth_x=config.LOAD_TEST_OBJECT_DEPTH_X, gravity=True,
             tension=tension, max_force=F_max)
