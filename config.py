@@ -186,6 +186,7 @@ GRIPPER_OBJECT_SIZE_MM = 35.0         # radius / box half-width
 GRIPPER_OBJECT_LENGTH_MM = 40.0       # cylinder half-length (along X) / box half-height
 GRIPPER_OBJECT_SIZE_RANGE_MM = (4.0, 80.0)     # UI size bounds (radius up to 80 mm)
 GRIPPER_OBJECT_LENGTH_RANGE_MM = (4.0, 120.0)  # UI length bounds
+GRIPPER_OBJECT_DEPTH_RANGE = (0.01, 0.15)      # m — UI depth bounds
 GRIPPER_OBJECT_DEPTH_Z = 0.075        # m — default object depth between the fingers
 
 # =====================================================================
