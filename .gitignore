@@ -39,3 +39,8 @@ gripper/load_test.xml
 .dual-graph/
 .dual-graph-context/
 PROJECT_MEMORY.md
+
+# Agent-specific instruction files
+GEMINI.md
+CLAUDE.md
+CODEX.md
