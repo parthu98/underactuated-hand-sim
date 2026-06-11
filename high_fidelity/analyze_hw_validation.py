@@ -227,7 +227,14 @@ def recompute_arm(clean):
 
     exp = {j: col(clean, f"theta_{j}_exp") for j in JOINTS}
     old = {j: col(clean, f"theta_{j}_ana") for j in JOINTS}   # CSV (const arm)
-    new = predict(True)
+    # predict() toggles analytical_model's module-level _MA_ANGLE_DEP; save and
+    # restore it so this analysis never leaks angle-dependent mode into any
+    # later use of analytical_model in the same process.
+    _prev_ma = am._MA_ANGLE_DEP
+    try:
+        new = predict(True)
+    finally:
+        am._MA_ANGLE_DEP = _prev_ma
     print(f"\n-- Angle-dependent arm recompute (baseline r0={r0*1e3:.2f} mm, "
           f"linear to {config.MOMENT_ARM_FULL_FLEXION*1e3:.0f} mm) --")
     print(f"   {'joint':5} {'bias const':>11} {'bias linear':>12} "

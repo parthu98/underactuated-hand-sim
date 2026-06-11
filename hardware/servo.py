@@ -139,11 +139,15 @@ def autodetect_servo(
     protocol: float = 2.0,
     baudrates: Optional[Tuple[int, ...]] = None,
     candidate_ports: Optional[List[str]] = None,
+    preferred_id: Optional[int] = None,
 ) -> Tuple[bool, Optional[str], Optional[int], Optional[int], str]:
     """Scan serial ports + baud rates for a Dynamixel, regardless of USB port.
 
     Tries ``preferred_port`` first (if given), then every ``/dev/ttyUSB*`` /
     ``/dev/ttyACM*`` port, broadcast-pinging at each baud until a motor answers.
+    When ``preferred_id`` is given and that id is among the motors that answer,
+    it is selected; otherwise the lowest responding id is used (so on a
+    multi-motor daisy-chain we bind the configured servo, not an arbitrary one).
 
     Returns ``(ok, port, baud, dxl_id, message)``. On success ``port/baud/id``
     are the discovered values; on failure they are ``None`` and ``message``
@@ -176,7 +180,10 @@ def autodetect_servo(
                     continue
                 data_list, _comm = packet_handler.broadcastPing(port_handler)
                 if data_list:
-                    found_id = int(sorted(data_list.keys())[0])
+                    ids = sorted(int(i) for i in data_list.keys())
+                    # Honour the requested id when it actually responded;
+                    # otherwise fall back to the lowest id on the bus.
+                    found_id = (preferred_id if preferred_id in ids else ids[0])
                     return (True, port, baud, found_id,
                             f"found Dynamixel id {found_id} on {port} @ {baud} baud")
         finally:
@@ -344,7 +351,8 @@ class Servo:
         # Auto-detect the port/baud/id when requested (port "auto" / None / "").
         # Robust to the U2D2 enumerating on a different /dev/ttyUSB* each plug-in.
         if self.port in (None, "", "auto"):
-            ok, port, baud, dxl_id, msg = autodetect_servo(protocol=self.protocol)
+            ok, port, baud, dxl_id, msg = autodetect_servo(
+                protocol=self.protocol, preferred_id=self.dxl_id)
             if not ok:
                 return False, f"servo auto-detect failed: {msg}"
             self.port = port
