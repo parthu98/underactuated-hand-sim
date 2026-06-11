@@ -71,6 +71,9 @@ MARKER_LABELS: Dict[int, str] = {0: "base", 1: "prox", 2: "mid", 3: "dist"}
 _COLOR_VISIBLE = (0, 200, 0)    # green
 _COLOR_MISSING = (0, 0, 220)    # red
 _COLOR_TEXT = (255, 255, 255)   # white
+_COLOR_REF = (0, 220, 220)      # yellow  — base-marker reference axis
+_COLOR_ALIGN_OK = (0, 200, 0)   # green   — link within alignment tolerance
+_COLOR_ALIGN_OFF = (0, 140, 255)  # orange — link off the reference
 
 
 def _phi_from_corners(corners: np.ndarray) -> float:
@@ -91,6 +94,12 @@ def _phi_from_corners(corners: np.ndarray) -> float:
     return math.degrees(math.atan2(float(v[1]), float(v[0])))
 
 
+def _wrap_deg(angle: float) -> float:
+    """Wrap an angle (degrees) into ``(-180, 180]`` (matches joints.wrap_deg)."""
+    w = (angle + 180.0) % 360.0 - 180.0
+    return 180.0 if w == -180.0 else float(w)
+
+
 class RealSenseAruco:
     """Open a RealSense color stream and report per-marker in-plane roll angles."""
 
@@ -102,6 +111,10 @@ class RealSenseAruco:
         marker_ids: Tuple[int, ...] = (0, 1, 2, 3),
         marker_size_mm: float = 12.0,
         dict_name: str = "DICT_4X4_50",
+        reference_marker_id: int = 0,
+        show_reference: bool = True,
+        align_tol_deg: float = 1.5,
+        serial: Optional[str] = None,
     ) -> None:
         self.width = int(width)
         self.height = int(height)
@@ -109,6 +122,19 @@ class RealSenseAruco:
         self.marker_ids: Tuple[int, ...] = tuple(int(i) for i in marker_ids)
         self.marker_size_mm = float(marker_size_mm)
         self.dict_name = str(dict_name)
+
+        # Reference-line / alignment overlay (drawing only — never alters the
+        # returned raw ``phi``; joints.py owns all angle bookkeeping).
+        self.reference_marker_id = int(reference_marker_id)
+        self.show_reference = bool(show_reference)
+        self.align_tol_deg = float(align_tol_deg)
+        # Per-marker straight-pose reference: {id: wrap(phi_i - phi_base)} at the
+        # captured zero. None until set_alignment_reference() is called.
+        self._align_ref: Optional[Dict[int, float]] = None
+
+        # Optional RealSense serial to pin a specific device. None => first
+        # device found on ANY usb port (auto).
+        self.serial: Optional[str] = str(serial) if serial else None
 
         # Populated on start().
         self._pipeline = None
@@ -118,6 +144,63 @@ class RealSenseAruco:
         self._detector = None        # new-API ArucoDetector (if available)
         self._use_new_api = False
         self._started = False
+
+    # -- device discovery --------------------------------------------------
+    @staticmethod
+    def list_devices() -> list:
+        """Return ``[(name, serial), ...]`` for every connected RealSense.
+
+        Works regardless of which USB port a device is on. Returns an empty
+        list if the SDK is missing or no device is attached.
+        """
+        if rs is None:
+            return []
+        out = []
+        try:
+            for dev in rs.context().query_devices():
+                try:
+                    name = dev.get_info(rs.camera_info.name)
+                except Exception:
+                    name = "RealSense"
+                try:
+                    serial = dev.get_info(rs.camera_info.serial_number)
+                except Exception:
+                    serial = "?"
+                out.append((name, serial))
+        except Exception:
+            return []
+        return out
+
+    # -- alignment reference ----------------------------------------------
+    def set_alignment_reference(self, phi: Dict[int, Optional[float]]) -> bool:
+        """Capture the current pose as the 'straight' alignment reference.
+
+        Stores, per marker, its orientation *relative to the base marker*
+        (``wrap(phi_i - phi_base)``). The live overlay then shows each link's
+        deviation from this reference, so all links read ~0 when the finger is
+        back in the pose this was captured at. Because the deviation is taken
+        relative to the base marker, a constant marker-mounting rotation and any
+        whole-hand re-orientation in the frame both cancel out. Returns ``False``
+        (leaving the reference unchanged) if the base marker is not visible.
+        """
+        base = phi.get(self.reference_marker_id)
+        if base is None:
+            return False
+        ref: Dict[int, float] = {}
+        for mid in self.marker_ids:
+            v = phi.get(mid)
+            if v is not None:
+                ref[mid] = _wrap_deg(float(v) - float(base))
+        self._align_ref = ref
+        return True
+
+    def clear_alignment_reference(self) -> None:
+        """Forget the captured straight reference (overlay falls back to raw)."""
+        self._align_ref = None
+
+    def set_show_reference(self, on: bool) -> None:
+        """Toggle the reference-axis / alignment overlay."""
+        self.show_reference = bool(on)
 
     # -- lifecycle ---------------------------------------------------------
     def start(self) -> None:
@@ -146,10 +229,23 @@ class RealSenseAruco:
         # Build the ArUco dictionary + detector params, picking the API path.
         self._build_detector()
 
+        # Auto-discovery: confirm a RealSense is present on *any* USB port and
+        # give a clear message if not (instead of a cryptic SDK error).
+        devices = self.list_devices()
+        if not devices:
+            raise RuntimeError(
+                "No Intel RealSense device detected on any USB port. Check the "
+                "USB cable/power and that no other process is holding the camera."
+            )
+
         # Open the color-only pipeline.
         try:
             pipeline = rs.pipeline()
             config = rs.config()
+            # Pin a specific device only if a serial was requested; otherwise
+            # the SDK binds the first available device on any port.
+            if self.serial:
+                config.enable_device(self.serial)
             config.enable_stream(
                 rs.stream.color,
                 self.width,
@@ -281,6 +377,7 @@ class RealSenseAruco:
     def _build_result(self, frame: np.ndarray, corners, ids) -> dict:
         phi: Dict[int, Optional[float]] = {mid: None for mid in self.marker_ids}
         visible: Dict[int, bool] = {mid: False for mid in self.marker_ids}
+        centers: Dict[int, np.ndarray] = {}
 
         if ids is not None and len(ids) > 0:
             # Draw all detected markers (outline + id).
@@ -298,9 +395,11 @@ class RealSenseAruco:
                 if mid in phi:
                     phi[mid] = angle
                     visible[mid] = True
+                    centers[mid] = pts.mean(axis=0)
 
                 self._annotate_marker(frame, pts, mid, angle)
 
+        self._draw_reference(frame, phi, centers)
         self._draw_legend(frame, visible)
         return {"phi": phi, "visible": visible, "frame": frame}
 
@@ -323,6 +422,76 @@ class RealSenseAruco:
             frame, text, org, cv2.FONT_HERSHEY_SIMPLEX, 0.6, _COLOR_TEXT, 1,
             cv2.LINE_AA,
         )
+
+    def _draw_reference(
+        self,
+        frame: np.ndarray,
+        phi: Dict[int, Optional[float]],
+        centers: Dict[int, np.ndarray],
+    ) -> None:
+        """Draw the base-marker reference axis + per-link alignment deviation.
+
+        A full-frame line is drawn through the base marker (M0) along its
+        in-plane orientation: the operator straightens the finger so every link
+        lies along it before a test. For each other marker we print its
+        deviation from the captured straight reference (or, if none is captured
+        yet, from the base orientation) and color it green within
+        ``align_tol_deg`` / orange outside, plus an ALIGNED / ALIGN-LINKS banner.
+        """
+        if not self.show_reference:
+            return
+        ref_id = self.reference_marker_id
+        base_phi = phi.get(ref_id)
+        base_center = centers.get(ref_id)
+        if base_phi is None or base_center is None:
+            return  # base marker not visible -> nothing to reference against
+
+        h, w = frame.shape[:2]
+        rad = math.radians(base_phi)
+        dx, dy = math.cos(rad), math.sin(rad)
+        span = float(w + h)
+        cx, cy = float(base_center[0]), float(base_center[1])
+        p1 = (int(round(cx - dx * span)), int(round(cy - dy * span)))
+        p2 = (int(round(cx + dx * span)), int(round(cy + dy * span)))
+        cv2.line(frame, p1, p2, _COLOR_REF, 1, cv2.LINE_AA)
+        cv2.putText(
+            frame, "REF AXIS (M0)", (10, h - 14), cv2.FONT_HERSHEY_SIMPLEX,
+            0.55, _COLOR_REF, 1, cv2.LINE_AA,
+        )
+
+        # Per-link deviation from the straight reference.
+        aligned_all = True
+        any_link = False
+        for mid in self.marker_ids:
+            if mid == ref_id:
+                continue
+            v = phi.get(mid)
+            c = centers.get(mid)
+            if v is None or c is None:
+                aligned_all = False
+                continue
+            any_link = True
+            rel = _wrap_deg(float(v) - float(base_phi))
+            ref = self._align_ref.get(mid) if self._align_ref else None
+            dev = _wrap_deg(rel - (ref if ref is not None else 0.0))
+            ok = abs(dev) <= self.align_tol_deg
+            aligned_all = aligned_all and ok
+            color = _COLOR_ALIGN_OK if ok else _COLOR_ALIGN_OFF
+            org = (int(round(c[0])) - 50, int(round(c[1])) + 24)
+            cv2.putText(frame, f"dev={dev:+5.1f}", org, cv2.FONT_HERSHEY_SIMPLEX,
+                        0.55, (0, 0, 0), 3, cv2.LINE_AA)
+            cv2.putText(frame, f"dev={dev:+5.1f}", org, cv2.FONT_HERSHEY_SIMPLEX,
+                        0.55, color, 1, cv2.LINE_AA)
+
+        if any_link:
+            if aligned_all:
+                msg, col = "ALIGNED", _COLOR_ALIGN_OK
+            else:
+                msg, col = "ALIGN LINKS", _COLOR_ALIGN_OFF
+            cv2.putText(frame, msg, (w - 210, 30), cv2.FONT_HERSHEY_SIMPLEX,
+                        0.8, (0, 0, 0), 4, cv2.LINE_AA)
+            cv2.putText(frame, msg, (w - 210, 30), cv2.FONT_HERSHEY_SIMPLEX,
+                        0.8, col, 2, cv2.LINE_AA)
 
     def _draw_legend(self, frame: np.ndarray, visible: Dict[int, bool]) -> None:
         """Small per-marker visibility legend in the top-left corner."""
@@ -388,6 +557,10 @@ class MockCamera:
         marker_ids: Tuple[int, ...] = (0, 1, 2, 3),
         marker_size_mm: float = 12.0,
         dict_name: str = "DICT_4X4_50",
+        reference_marker_id: int = 0,
+        show_reference: bool = True,
+        align_tol_deg: float = 1.5,
+        serial: Optional[str] = None,
     ) -> None:
         self.width = int(width)
         self.height = int(height)
@@ -396,8 +569,36 @@ class MockCamera:
         self.marker_size_mm = float(marker_size_mm)
         self.dict_name = str(dict_name)
 
+        self.reference_marker_id = int(reference_marker_id)
+        self.show_reference = bool(show_reference)
+        self.align_tol_deg = float(align_tol_deg)
+        self._align_ref: Optional[Dict[int, float]] = None
+        self.serial: Optional[str] = str(serial) if serial else None
+
         self._started = False
         self._t0 = 0.0
+
+    @staticmethod
+    def list_devices() -> list:
+        return [("MockCamera", "MOCK")]
+
+    def set_alignment_reference(self, phi: Dict[int, Optional[float]]) -> bool:
+        base = phi.get(self.reference_marker_id)
+        if base is None:
+            return False
+        ref: Dict[int, float] = {}
+        for mid in self.marker_ids:
+            v = phi.get(mid)
+            if v is not None:
+                ref[mid] = _wrap_deg(float(v) - float(base))
+        self._align_ref = ref
+        return True
+
+    def clear_alignment_reference(self) -> None:
+        self._align_ref = None
+
+    def set_show_reference(self, on: bool) -> None:
+        self.show_reference = bool(on)
 
     def start(self) -> None:
         self._t0 = time.time()
@@ -475,6 +676,22 @@ class MockCamera:
             _cv2.putText(
                 frame, text, (cx - 80, cy + half + 30),
                 _cv2.FONT_HERSHEY_SIMPLEX, 0.6, _COLOR_TEXT, 1, _cv2.LINE_AA,
+            )
+
+        # Reference axis through the base marker (M0), same idea as the real cam.
+        if self.show_reference and self.reference_marker_id in self.marker_ids:
+            k0 = self.marker_ids.index(self.reference_marker_id)
+            base_angle = phi.get(self.reference_marker_id) or 0.0
+            rad = math.radians(base_angle)
+            dx, dy = math.cos(rad), math.sin(rad)
+            span = float(self.width + self.height)
+            bx = spacing * (k0 + 1)
+            p1 = (int(bx - dx * span), int(cy - dy * span))
+            p2 = (int(bx + dx * span), int(cy + dy * span))
+            _cv2.line(frame, p1, p2, _COLOR_REF, 1, _cv2.LINE_AA)
+            _cv2.putText(
+                frame, "REF AXIS (M0)", (10, self.height - 14),
+                _cv2.FONT_HERSHEY_SIMPLEX, 0.55, _COLOR_REF, 1, _cv2.LINE_AA,
             )
 
 
