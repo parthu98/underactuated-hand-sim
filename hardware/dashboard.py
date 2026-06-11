@@ -13,7 +13,6 @@ Single PySide6 window that:
 
 Everything physical is sourced from config.py and analytical_model.py — no
 joint limit, moment arm, or spring value is hard-coded here.
-
 Run:
     python3 dashboard.py                 # real RealSense + real Dynamixel
     python3 dashboard.py --mock          # no hardware (synthetic cam + servo)
@@ -50,9 +49,10 @@ from state_machine import AutoSweep, SettleDetector, State  # noqa: E402
 # --- Qt / matplotlib ---------------------------------------------------------
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas  # noqa: E402
 from matplotlib.figure import Figure  # noqa: E402
-from PySide6.QtCore import Qt, QTimer  # noqa: E402
+from PySide6.QtCore import QEvent, QObject, Qt, QTimer  # noqa: E402
 from PySide6.QtGui import QFont, QImage, QKeyEvent, QPixmap  # noqa: E402
 from PySide6.QtWidgets import (  # noqa: E402
+    QAbstractSpinBox,
     QApplication,
     QComboBox,
     QDoubleSpinBox,
@@ -70,8 +70,25 @@ from PySide6.QtWidgets import (  # noqa: E402
 
 JOINTS = ("mcp", "pip", "dip")
 JCOLORS = {"mcp": "#58a6ff", "pip": "#7ee787", "dip": "#ff7b72"}
-DELTA_PRESETS = (5.0, 10.0, 15.0, 20.0)
+DELTA_PRESETS = (0.0, 5.0, 10.0, 15.0, 20.0, 25.0)
 TICK_MS = 50  # 20 Hz main loop
+
+# Set-Zero / Capture averaging: the ArUco in-plane angles jitter a few degrees
+# frame-to-frame, so we never trust a single frame. Both zeroing and capturing
+# grab N_AVG_SAMPLES successive detections and take a wrap-safe circular mean
+# per marker. A marker must be seen in at least _AVG_MIN_FRAC of those frames to
+# count as visible (and only the frames it WAS seen in feed its average).
+N_AVG_SAMPLES = 20
+_AVG_MIN_FRAC = 0.6
+
+# Finger-pose plot colors (measured vs analytical chains), echoing the
+# morphology maps in high_fidelity/validation.py. Brightened for the dark theme.
+POSE_EXP_COLOR = "#ff7b72"   # measured (hardware / ArUco) chain
+POSE_ANA_COLOR = "#58a6ff"   # analytical prediction chain
+# Link lengths [m] used only to DRAW the pose when the high-fidelity model (and
+# hence the real link lengths) can't be loaded. Proportions matter, not scale —
+# the pose axes autoscale to the drawn chains.
+FALLBACK_LINK_LENGTHS = (0.045, 0.030, 0.022)
 
 
 # =====================================================================
@@ -79,6 +96,9 @@ TICK_MS = 50  # 20 Hz main loop
 # =====================================================================
 def _btn(text, color="#c9d1d9", bg="#21262d", border="#30363d"):
     b = QPushButton(text)
+    # NoFocus: clicking a button must NOT pull keyboard focus away from the
+    # window, otherwise the ←/→ jog keys stop reaching keyPressEvent.
+    b.setFocusPolicy(Qt.NoFocus)
     b.setStyleSheet(
         f"QPushButton {{ background:{bg}; color:{color}; border:1px solid {border};"
         f" border-radius:4px; padding:7px; font-family:Consolas; font-size:11px; }}"
@@ -111,10 +131,51 @@ def _dspin(lo, hi, val, step, suffix=""):
 
 
 # =====================================================================
+# Application-wide jog key filter
+# =====================================================================
+class _JogKeyFilter(QObject):
+    """Route the jog / e-stop keys to the dashboard no matter which widget has
+    focus, so ←/→/A/D/Space keep working after you click a button.
+
+    The one exception is while a number field or the editable label box is being
+    typed into — there the keys are left alone so you can edit text / step
+    values normally.
+    """
+
+    def __init__(self, dash):
+        super().__init__(dash)
+        self.dash = dash
+
+    def eventFilter(self, obj, ev):  # noqa: N802 (Qt signature)
+        t = ev.type()
+        if t not in (QEvent.KeyPress, QEvent.KeyRelease):
+            return False
+        if ev.isAutoRepeat():
+            return False
+        fw = QApplication.focusWidget()
+        editing = isinstance(fw, QAbstractSpinBox) or (
+            isinstance(fw, QComboBox) and fw.isEditable())
+        if editing:
+            return False  # let the field consume the key (typing / stepping)
+        k = ev.key()
+        press = t == QEvent.KeyPress
+        if k in (Qt.Key_Left, Qt.Key_A):
+            self.dash._set_jog(-1 if press else 0)
+            return True
+        if k in (Qt.Key_Right, Qt.Key_D):
+            self.dash._set_jog(+1 if press else 0)
+            return True
+        if k == Qt.Key_Space and press:
+            self.dash._do_estop()
+            return True
+        return False
+
+
+# =====================================================================
 # Main window
 # =====================================================================
 class Dashboard(QMainWindow):
-    def __init__(self, camera, servo, *, geom_r, geom_note):
+    def __init__(self, camera, servo, *, geom_r, geom_note, geom_link_lengths=None):
         super().__init__()
         self.cam = camera
         self.servo = servo
@@ -123,12 +184,19 @@ class Dashboard(QMainWindow):
         self.sweep = AutoSweep(DELTA_PRESETS, n_trials=5)
 
         self.r = np.asarray(geom_r, dtype=float)
+        # Link lengths [m] for the finger-pose plot's forward kinematics. Fall
+        # back to nominal proportions if the model geometry wasn't available.
+        self.link_lengths = np.asarray(
+            geom_link_lengths if geom_link_lengths is not None
+            else FALLBACK_LINK_LENGTHS, dtype=float)
         self.geom_note = geom_note
         self.state = State.IDLE
         self.logger = None
+        self._logger_sig = None     # (k1,k2,k3,label) the open CSV belongs to
+        self._curve_err = None      # last analytical-curve error (surfaced on plot)
         self.captures = []          # list of {delta_L, exp{}, ana[]}
         self.last_capture = None
-        self.target_mm = DELTA_PRESETS[0]
+        self.target_mm = DELTA_PRESETS[1] if len(DELTA_PRESETS) > 1 else DELTA_PRESETS[0]
         self.settle_status = SettleDetector.SETTLING
         self.settle_time = float("nan")
         self.auto_active = False
@@ -147,6 +215,12 @@ class Dashboard(QMainWindow):
 
         self._build_ui()
 
+        # App-wide key filter so the jog keys survive focus changes.
+        self._key_filter = _JogKeyFilter(self)
+        app = QApplication.instance()
+        if app is not None:
+            app.installEventFilter(self._key_filter)
+
         # main 20 Hz loop
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._tick)
@@ -155,11 +229,19 @@ class Dashboard(QMainWindow):
         self._refresh_spring_readout()
         self._set_state(State.IDLE)
 
+    def _grab_focus(self):
+        """Return keyboard focus to the window so ←/→ jog again (e.g. after a
+        click landed in a number field)."""
+        cw = self.centralWidget()
+        if cw is not None:
+            cw.setFocus()
+
     # -----------------------------------------------------------------
     # UI construction
     # -----------------------------------------------------------------
     def _build_ui(self):
         central = QWidget()
+        central.setFocusPolicy(Qt.StrongFocus)
         root = QHBoxLayout(central)
 
         # ---- LEFT: camera preview + plots ----
@@ -184,7 +266,7 @@ class Dashboard(QMainWindow):
         # embedded plots
         self.fig = Figure(figsize=(7, 3.4), facecolor="#0d1117")
         self.canvas = FigureCanvas(self.fig)
-        self.ax_bar = self.fig.add_subplot(1, 2, 1)
+        self.ax_pose = self.fig.add_subplot(1, 2, 1)
         self.ax_curve = self.fig.add_subplot(1, 2, 2)
         self.fig.subplots_adjust(left=0.09, right=0.97, top=0.88, bottom=0.16, wspace=0.3)
         left.addWidget(self.canvas)
@@ -221,6 +303,15 @@ class Dashboard(QMainWindow):
         self.lbl_conn = QLabel("camera: —   servo: —")
         self.lbl_conn.setStyleSheet("color:#8b949e;")
         lay.addWidget(self.lbl_conn)
+        self.lbl_servo_dev = QLabel("servo port: auto (scans on connect)")
+        self.lbl_servo_dev.setStyleSheet("color:#8b949e; font-size:10px;")
+        lay.addWidget(self.lbl_servo_dev)
+
+        # Reference-axis overlay toggle (alignment aid for straightening links).
+        self.btn_ref = _btn("REF LINE: ON")
+        self.btn_ref.clicked.connect(self._toggle_reference)
+        lay.addWidget(self.btn_ref)
+
         if self.geom_note:
             note = QLabel(self.geom_note)
             note.setWordWrap(True)
@@ -402,39 +493,84 @@ class Dashboard(QMainWindow):
         ax.grid(True, color="#21262d", linestyle="--", linewidth=0.5)
 
     def _init_plots(self):
-        self.ax_bar.clear()
+        self.ax_pose.clear()
         self.ax_curve.clear()
-        self.ax_bar.set_title("current capture", fontsize=9)
-        self.ax_bar.set_ylabel("angle (deg)", fontsize=8)
+        self.ax_pose.set_title("finger pose (latest capture)", fontsize=9)
+        self.ax_pose.set_xlabel("x [m]", fontsize=8)
+        self.ax_pose.set_ylabel("y [m]", fontsize=8)
         self.ax_curve.set_title("ΔL vs angle", fontsize=9)
         self.ax_curve.set_xlabel("ΔL (mm)", fontsize=8)
         self.ax_curve.set_ylabel("angle (deg)", fontsize=8)
-        for ax in (self.ax_bar, self.ax_curve):
+        for ax in (self.ax_pose, self.ax_curve):
             self._style_ax(ax)
         self.canvas.draw_idle()
 
+    def _chain_points(self, angles_deg):
+        """3R forward kinematics → 4 (x, y) points [base, PIP, DIP, tip] in m.
+
+        Same convention as high_fidelity/validation.py's ``_chain_points``: each
+        link adds ``(L·sin(cum), L·cos(cum))`` with ``cum`` the running sum of
+        the joint angles, so a fully-extended finger (all angles 0) points along
+        +y. Used to draw the measured / analytical pose instead of a bar chart.
+        """
+        L = self.link_lengths
+        ang = np.radians(np.asarray(angles_deg, dtype=float))
+        pts = np.zeros((4, 2))
+        cum = 0.0
+        for j in range(3):
+            cum += float(ang[j])
+            pts[j + 1] = pts[j] + (L[j] * np.sin(cum), L[j] * np.cos(cum))
+        return pts
+
+    def _draw_chain(self, pts, color, label, ls="-", zorder=3):
+        """Draw one finger chain: round-jointed link line, open hinge circles at
+        the pivots, and a diamond at the fingertip (mirrors validation.py)."""
+        self.ax_pose.plot(pts[:, 0], pts[:, 1], ls, color=color, lw=2.6,
+                          solid_capstyle="round", solid_joinstyle="round",
+                          zorder=zorder, label=label)
+        self.ax_pose.plot(pts[:-1, 0], pts[:-1, 1], "o", color=color, ms=7,
+                          mfc="#0d1117", mew=1.6, zorder=zorder + 1)
+        self.ax_pose.plot(pts[-1, 0], pts[-1, 1], "D", color=color, ms=6,
+                          zorder=zorder + 1)
+
     def _redraw_plots(self):
-        # ---- (a) grouped bar of current capture ----
-        self.ax_bar.clear()
-        self._style_ax(self.ax_bar)
-        self.ax_bar.set_title("current capture", fontsize=9)
-        self.ax_bar.set_ylabel("angle (deg)", fontsize=8)
-        x = np.arange(3)
-        w = 0.36
+        # ---- (a) 3R finger pose of the latest capture (measured vs analytical)
+        self.ax_pose.clear()
+        self._style_ax(self.ax_pose)
+        self.ax_pose.set_title("finger pose (latest capture)", fontsize=9)
+        self.ax_pose.set_xlabel("x [m]", fontsize=8)
+        self.ax_pose.set_ylabel("y [m]", fontsize=8)
         if self.last_capture is not None:
             exp = [self.last_capture["exp"][j] for j in JOINTS]
             ana = list(self.last_capture["ana"])
-            self.ax_bar.bar(x - w / 2, exp, w, color="#C0392B", label="exp")
-            self.ax_bar.bar(x + w / 2, ana, w, color="#1F4E79", label="ana")
-            for i, j in enumerate(JOINTS):
-                e = (exp[i] or 0.0) - ana[i]
-                top = max(exp[i] or 0.0, ana[i])
-                self.ax_bar.text(i, top + 1.5, f"Δ{e:+.1f}°", ha="center",
-                                 color="#8b949e", fontsize=7.5)
-            self.ax_bar.legend(fontsize=7, facecolor="#161b22",
-                               edgecolor="#30363d", labelcolor="#c9d1d9")
-        self.ax_bar.set_xticks(x)
-        self.ax_bar.set_xticklabels([j.upper() for j in JOINTS], fontsize=8)
+            p_exp = self._chain_points(exp)
+            p_ana = self._chain_points(ana)
+            # faint axes through the base pivot
+            self.ax_pose.axhline(0, color="#21262d", lw=0.8, zorder=0)
+            self.ax_pose.axvline(0, color="#21262d", lw=0.8, zorder=0)
+            # dotted connectors show the per-joint deviation between the chains
+            for a, b in zip(p_ana[1:], p_exp[1:]):
+                self.ax_pose.plot([a[0], b[0]], [a[1], b[1]], ":",
+                                  color="#8b949e", lw=0.8, alpha=0.6, zorder=2)
+            self._draw_chain(p_ana, POSE_ANA_COLOR, "analytical", ls="--", zorder=3)
+            self._draw_chain(p_exp, POSE_EXP_COLOR, "measured", ls="-", zorder=4)
+            for name, pt in zip((j.upper() for j in JOINTS), p_exp[:3]):
+                self.ax_pose.annotate(name, xy=pt, xytext=(6, 6),
+                                      textcoords="offset points", fontsize=7,
+                                      color="#8b949e", fontweight="bold")
+            self.ax_pose.legend(fontsize=7, facecolor="#161b22",
+                                edgecolor="#30363d", labelcolor="#c9d1d9",
+                                loc="upper right")
+            # equal aspect, autoscale to both chains (always include the origin)
+            allp = np.vstack([p_exp, p_ana, [[0.0, 0.0]]])
+            pad = 0.012
+            self.ax_pose.set_xlim(allp[:, 0].min() - pad, allp[:, 0].max() + pad)
+            self.ax_pose.set_ylim(allp[:, 1].min() - pad, allp[:, 1].max() + pad)
+            self.ax_pose.set_aspect("equal", adjustable="box")
+        else:
+            self.ax_pose.text(0.5, 0.5, "press ◉ CAPTURE\nto draw the pose",
+                              transform=self.ax_pose.transAxes, ha="center",
+                              va="center", color="#8b949e", fontsize=8)
 
         # ---- (b) accumulating ΔL vs angle: analytical curves + exp points ----
         self.ax_curve.clear()
@@ -449,8 +585,17 @@ class Dashboard(QMainWindow):
             for i, j in enumerate(JOINTS):
                 self.ax_curve.plot(dl, curve[i], "-", color=JCOLORS[j],
                                    lw=1.6, label=f"{j.upper()} ana")
-        except Exception:
-            pass
+            self._curve_err = None
+        except Exception as e:  # noqa: BLE001
+            # Don't fail silently — if the analytical model can't run, say so on
+            # the plot (and once on the console) so it's obvious, not a blank box.
+            msg = f"{type(e).__name__}: {e}"
+            if msg != self._curve_err:
+                print(f"[dashboard] analytical curve failed: {msg}", file=sys.stderr)
+                self._curve_err = msg
+            self.ax_curve.text(0.5, 0.5, f"analytical curve failed\n{type(e).__name__}",
+                               transform=self.ax_curve.transAxes, ha="center",
+                               va="center", color="#f85149", fontsize=8)
         # experimental scatter
         for j in JOINTS:
             xs = [c["delta_L"] for c in self.captures if c["exp"][j] is not None]
@@ -467,6 +612,12 @@ class Dashboard(QMainWindow):
     # -----------------------------------------------------------------
     def _k_vec(self):
         return np.array([self.k1.value(), self.k2.value(), self.k3.value()])
+
+    def _spring_sig(self):
+        """Identity of the current spring set: changing it rolls a new CSV."""
+        k = self._k_vec()
+        return (round(float(k[0]), 6), round(float(k[1]), 6), round(float(k[2]), 6),
+                self.lbl_label.currentText().strip() or "custom")
 
     def _refresh_spring_readout(self):
         k = self._k_vec()
@@ -492,10 +643,15 @@ class Dashboard(QMainWindow):
         if not ok:
             QMessageBox.critical(self, "Servo", msg or "connect failed")
         else:
+            # After auto-detect, port/baud/id on the servo are the resolved ones.
             self.btn_conn_servo.setText("SERVO ✓")
             self.btn_conn_servo.setEnabled(False)
+            self.lbl_servo_dev.setText(
+                f"servo @ {self.servo.port}  id {self.servo.dxl_id}  "
+                f"{self.servo.baud} baud")
             if self.state == State.IDLE:
                 self._set_state(State.JOG)
+            self._grab_focus()
         self._update_conn_label()
 
     def _update_conn_label(self):
@@ -504,6 +660,12 @@ class Dashboard(QMainWindow):
         self.lbl_conn.setText(
             f"camera: {'on' if self.btn_conn_cam.text().endswith('✓') else '—'}   "
             f"servo: {'on' if st.get('connected') else '—'}")
+
+    def _toggle_reference(self):
+        on = not getattr(self.cam, "show_reference", True)
+        if hasattr(self.cam, "set_show_reference"):
+            self.cam.set_show_reference(on)
+        self.btn_ref.setText(f"REF LINE: {'ON' if on else 'OFF'}")
 
     # -----------------------------------------------------------------
     # jog / safety
@@ -536,8 +698,59 @@ class Dashboard(QMainWindow):
                                 f"flexion_sign = {self.joints.flexion_sign} "
                                 f"(flexion should read positive).")
 
+    # -----------------------------------------------------------------
+    # stable (averaged) marker reading
+    # -----------------------------------------------------------------
+    @staticmethod
+    def _circular_mean_deg(angles):
+        """Wrap-safe mean of angles (deg). Returns None for an empty list.
+
+        Plain arithmetic averaging breaks near the ±180° seam (e.g. mean of
+        179 and -179 is 0, not 180); the circular mean via atan2(Σsin, Σcos)
+        gives the right answer everywhere phi can land.
+        """
+        if not angles:
+            return None
+        a = np.radians(np.asarray(angles, dtype=float))
+        s = float(np.sin(a).sum())
+        c = float(np.cos(a).sum())
+        if s == 0.0 and c == 0.0:
+            return None
+        return float(np.degrees(np.arctan2(s, c)))
+
+    def _sample_phi_avg(self, n=N_AVG_SAMPLES):
+        """Grab n camera frames and return wrap-safe averaged per-marker phi.
+
+        Both Set-Zero and Capture use this instead of a single frame, because
+        the per-marker ArUco angle oscillates frame-to-frame. Returns
+        ``(phi_avg, visible)`` where ``phi_avg[mid]`` is the circular-mean angle
+        in degrees (or None if the marker was never seen) and ``visible[mid]``
+        is True only when the marker appeared in at least _AVG_MIN_FRAC of the
+        frames actually captured. The live preview/overlay keeps updating during
+        the (~0.5 s at 30 fps) burst.
+        """
+        acc = {i: [] for i in range(4)}
+        got = 0
+        for _ in range(max(1, int(n))):
+            try:
+                det = self.cam.detect()
+            except Exception:
+                continue
+            got += 1
+            phi, vis = det["phi"], det["visible"]
+            for i in range(4):
+                if vis.get(i) and phi.get(i) is not None:
+                    acc[i].append(float(phi[i]))
+            # keep the UI live during the burst (mirrors what _tick does)
+            self._last_phi, self._last_visible = phi, vis
+            self._show_frame(det["frame"])
+        min_seen = max(1, int(round(got * _AVG_MIN_FRAC))) if got else 1
+        phi_avg = {i: self._circular_mean_deg(acc[i]) for i in range(4)}
+        visible = {i: (len(acc[i]) >= min_seen) for i in range(4)}
+        return phi_avg, visible
+
     def _set_zero(self):
-        phi = self._last_phi
+        phi, _ = self._sample_phi_avg()
         ok = self.joints.set_zero(phi)
         if not ok:
             QMessageBox.warning(self, "Set Zero",
@@ -546,9 +759,15 @@ class Dashboard(QMainWindow):
             return
         if self.servo.get_state().get("connected"):
             self.servo.set_zero()
-        self.lbl_zero.setText("zeroed ✓  (θ=0, ΔL=0)")
+        # Capture this straight pose as the camera's alignment reference so the
+        # overlay deviations read ~0 here (this IS the "subtract the start"
+        # baseline; mounting rotation cancels — overlay aid only, not the data).
+        if hasattr(self.cam, "set_alignment_reference"):
+            self.cam.set_alignment_reference(phi)
+        self.lbl_zero.setText("zeroed ✓  (θ=0, ΔL=0, ref set)")
         self.lbl_zero.setStyleSheet("color:#56d364;")
         self._set_state(State.ZEROED)
+        self._grab_focus()
 
     # -----------------------------------------------------------------
     # ΔL ramp + settle
@@ -573,13 +792,17 @@ class Dashboard(QMainWindow):
             return
         self.target_mm = target
         self._set_state(State.RAMP)
+        self._grab_focus()
 
     # -----------------------------------------------------------------
     # capture
     # -----------------------------------------------------------------
     def _capture(self, auto=False):
-        all_vis = all(self._last_visible.values())
-        exp = dict(self._last_theta)
+        # Average several frames: the ArUco angles jitter, so the logged reading
+        # is the wrap-safe mean over N_AVG_SAMPLES detections, not one frame.
+        phi_avg, vis = self._sample_phi_avg()
+        all_vis = all(vis.values())
+        exp = self.joints.compute(phi_avg)
         if not all_vis or any(exp[j] is None for j in JOINTS):
             if not auto:
                 QMessageBox.warning(self, "Capture",
@@ -599,9 +822,19 @@ class Dashboard(QMainWindow):
         m12_a, m32_a = predictor.metrics(ana)
         st = self.servo.get_state()
 
-        if self.logger is None:
+        # One CSV file per spring set: when the springs (or label) change, close
+        # the old file, start a fresh one, and clear the on-screen accumulation so
+        # the plots show only the current spring set.
+        sig = self._spring_sig()
+        if self.logger is None or sig != self._logger_sig:
+            if self.logger is not None:
+                self.logger.close()
+            self.captures = []
+            self.last_capture = None
             self.logger = CsvLogger(self.lbl_label.currentText().strip() or "custom")
+            self._logger_sig = sig
             self.ro_csv.setText(os.path.basename(self.logger.filepath))
+            self.lbl_trial.setText("rows: 0")
 
         rho1 = k_vec[0] / k_vec[1] if k_vec[1] else float("nan")
         rho3 = k_vec[2] / k_vec[1] if k_vec[1] else float("nan")
@@ -629,6 +862,7 @@ class Dashboard(QMainWindow):
         self.lbl_trial.setText(f"rows: {self.logger.n_rows()}")
         self._set_state(State.CAPTURE)
         self._redraw_plots()
+        self._grab_focus()
         return True
 
     # -----------------------------------------------------------------
@@ -815,7 +1049,8 @@ def _build_devices(args):
     if args.mock or args.mock_camera:
         cam = MockCamera()
     else:
-        cam = RealSenseAruco(width=args.width, height=args.height, fps=args.fps)
+        cam = RealSenseAruco(width=args.width, height=args.height, fps=args.fps,
+                             serial=args.rs_serial)
     if args.mock or args.mock_servo:
         servo = MockServo(spool_radius_m=args.spool_radius)
     else:
@@ -829,11 +1064,15 @@ def main():
     p.add_argument("--mock", action="store_true", help="no hardware (mock cam+servo)")
     p.add_argument("--mock-camera", action="store_true")
     p.add_argument("--mock-servo", action="store_true")
-    p.add_argument("--port", default="/dev/ttyUSB0")
+    p.add_argument("--port", default="auto",
+                   help="servo serial port; 'auto' scans ttyUSB*/ttyACM* + bauds")
     p.add_argument("--id", type=int, default=15)
     p.add_argument("--baud", type=int, default=57600)
-    p.add_argument("--spool-radius", type=float, default=0.0125,
-                   help="tendon spool RADIUS [m] (diameter 25mm -> 0.0125)")
+    p.add_argument("--rs-serial", default=None,
+                   help="pin a specific RealSense by serial (default: any port)")
+    p.add_argument("--spool-radius", type=float, default=config.SPOOL_RADIUS,
+                   help=f"tendon spool RADIUS [m] (default {config.SPOOL_RADIUS}, "
+                        f"the measured Ø22.35mm spool)")
     p.add_argument("--width", type=int, default=1280)
     p.add_argument("--height", type=int, default=720)
     p.add_argument("--fps", type=int, default=30)
@@ -842,8 +1081,9 @@ def main():
     # geometry (same source of truth as validation.py); fall back to a constant
     # sheath arm if mujoco is unavailable so the rig is still usable.
     geom_note = ""
+    link_lengths = None
     try:
-        r, _ = predictor.get_geometry()
+        r, link_lengths = predictor.get_geometry()
         geom_note = (f"r (moment arms) from high-fidelity model: "
                      f"[{r[0]*1000:.2f}, {r[1]*1000:.2f}, {r[2]*1000:.2f}] mm")
     except Exception as e:  # noqa: BLE001
@@ -854,7 +1094,8 @@ def main():
     app = QApplication(sys.argv)
     app.setFont(QFont("Consolas", 10))
     cam, servo = _build_devices(args)
-    win = Dashboard(cam, servo, geom_r=r, geom_note=geom_note)
+    win = Dashboard(cam, servo, geom_r=r, geom_note=geom_note,
+                    geom_link_lengths=link_lengths)
     win.show()
     return app.exec()
 
