@@ -82,19 +82,31 @@ class CsvLogger:
     ]
 
     def __init__(self, spring_set_label: str = "custom",
-                 out_dir: str = DEFAULT_OUT_DIR):
+                 out_dir: str = DEFAULT_OUT_DIR,
+                 columns: list = None,
+                 filename_prefix: str = "hw_validation"):
+        """One CSV file per run.
+
+        Defaults reproduce the validation-rig behaviour (``hw_validation_*`` with
+        :attr:`COLUMNS`). Pass ``columns`` and ``filename_prefix`` to reuse the
+        same tolerant writer for another rig — e.g. the load-carrying pull-out
+        test uses ``filename_prefix="hw_loadtest"`` with its own column set.
+        """
         self.spring_set_label = spring_set_label
         self.out_dir = out_dir
+        # Per-instance columns (falls back to the class default) so the tolerant
+        # blank-fill / round / None-safe formatting is shared across rigs.
+        self.columns = list(columns) if columns is not None else list(self.COLUMNS)
         os.makedirs(out_dir, exist_ok=True)
 
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         safe_label = _sanitize_label(spring_set_label)
-        fname = f"hw_validation_{safe_label}_{stamp}.csv"
+        fname = f"{filename_prefix}_{safe_label}_{stamp}.csv"
         self._filepath = os.path.join(out_dir, fname)
 
         self._n_rows = 0
         self._fh = open(self._filepath, "w", newline="")
-        self._writer = csv.DictWriter(self._fh, fieldnames=self.COLUMNS,
+        self._writer = csv.DictWriter(self._fh, fieldnames=self.columns,
                                       extrasaction="ignore")
         self._writer.writeheader()
         self._fh.flush()
@@ -110,7 +122,7 @@ class CsvLogger:
         Unknown keys are ignored, missing columns are blank-filled, floats are
         rounded, and ``None`` values become empty cells.
         """
-        out = {col: _format_value(row.get(col)) for col in self.COLUMNS}
+        out = {col: _format_value(row.get(col)) for col in self.columns}
         self._writer.writerow(out)
         self._fh.flush()
         self._n_rows += 1
