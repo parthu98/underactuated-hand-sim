@@ -253,3 +253,39 @@ LOAD_TEST_SERVO_STALL_TORQUE = 4.41     # N·m — servo max output (Dynamixel X
 LOAD_TEST_SPOOL_RADIUS = SPOOL_RADIUS   # m — string winding radius at the servo horn (see SPOOL_RADIUS)
 LOAD_TEST_MAX_TENDON_FORCE = LOAD_TEST_SERVO_STALL_TORQUE / LOAD_TEST_SPOOL_RADIUS  # N — per-finger flexor force ceiling
 LOAD_TEST_MAX_FORCE_UI_MAX = 600.0      # N — upper bound of the live "F max" slider
+
+
+# =====================================================================
+# Load-carrying (pull-out) HARDWARE test  —  hardware/load_test_dashboard.py
+# =====================================================================
+# Physical counterpart of the simulated load test (gripper/interactive_load_test.py):
+# two tendon-driven fingers (Dynamixel A/B daisy-chained on one U2D2) grip an object;
+# a third servo (its own U2D2) winds a stainless string that pulls the object out via a
+# Futek LCM300 axial load cell (read over a USB220 module that free-runs ASCII on a
+# /dev/ttyUSB* serial port). We ramp the pull, watch the measured force rise, and record
+# the PEAK force at which the grip releases = the load-carrying capacity.
+
+LBF_TO_N = 4.4482216153                 # exact pound-force -> newton conversion
+
+# -- Futek LCM300 load cell (via USB220 serial module) ----------------
+LOADCELL_CAPACITY_LB = 250.0            # rated capacity [lbf] (LCM300 as ordered)
+LOADCELL_CAPACITY_N = LOADCELL_CAPACITY_LB * LBF_TO_N   # ~1112.06 N
+LOADCELL_SENSITIVITY_MV_V = 2.0         # rated output [mV/V] (cal cert) — for reference
+LOADCELL_BAUD = 9600                    # USB220 serial baud — confirm against the device
+# First float on each free-running ASCII line (handles "+0012.34", "12.34 lb", etc.).
+LOADCELL_LINE_REGEX = r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?"
+LOADCELL_INPUT_UNIT = "lb"              # unit of the parsed value: "lb" -> N, or "n"/"raw"
+LOADCELL_SCALE = 1.0                    # multiply parsed value before unit conv (tune on device)
+LOADCELL_FILTER_ALPHA = 0.3             # low-pass on force, 0..1 (1 = raw, no filtering)
+
+# -- Servo ids / pull-out winding -------------------------------------
+FINGER_A_DXL_ID = 15                    # finger A (U2D2 #1, shared bus)
+FINGER_B_DXL_ID = 16                    # finger B (U2D2 #1, shared bus)
+PULL_DXL_ID = 17                        # pull servo  (U2D2 #2, its own port)
+PULL_SPOOL_RADIUS = SPOOL_RADIUS        # m — TODO: set once the pull horn/spool is designed
+PULL_SPEED_MM_S = 2.0                   # default string take-up (winding) speed
+PULL_MAX_DELTA_MM = 120.0               # pull-servo soft ΔL cap (string take-up range)
+
+# -- Release detection ------------------------------------------------
+RELEASE_DROP_FRAC = 0.30                # force drop from the running peak that flags release
+RELEASE_MIN_FORCE_N = 2.0               # noise floor — ignore drops below this force
