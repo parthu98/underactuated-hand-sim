@@ -105,14 +105,23 @@ SHEATH_MOMENT_ARM = 0.007      # m — tendon moment arm at full extension (0°)
 
 # ---- Angle-dependent moment arm (analytical model) -------------------------
 # CAD shows the tendon moment arm is NOT constant: it grows with joint flexion
-# from SHEATH_MOMENT_ARM at 0° (links straight) to MOMENT_ARM_FULL_FLEXION at
-# MOMENT_ARM_FLEXION_REF_DEG of flexion. Assumed LINEAR between the two CAD
-# measurements. analytical_model.py adds this per-joint increment on top of each
-# joint's extension arm and solves the resulting implicit equilibrium.
+# from SHEATH_MOMENT_ARM at 0° (links straight) and SATURATES toward full
+# flexion. The growth is SUB-LINEAR (NOT the straight 7→12 mm line previously
+# assumed): the table below is MEASURED from CAD at 10° steps. analytical_model.py
+# interpolates it on |θ| (holding the 90° value beyond the measured range, e.g.
+# PIP > 90°), adds the increment over the 0° arm on top of each joint's extension
+# arm, and solves the resulting implicit equilibrium.
 # Set MOMENT_ARM_ANGLE_DEPENDENT = False to fall back to the constant arm.
 MOMENT_ARM_ANGLE_DEPENDENT = True
-MOMENT_ARM_FULL_FLEXION = 0.012        # m — moment arm at full flexion (from CAD)
-MOMENT_ARM_FLEXION_REF_DEG = 90.0      # deg — flexion at which the above is measured
+# Measured moment-arm calibration: joint flexion [deg] -> tendon moment arm [mm].
+# Index-aligned; the 0° entry equals SHEATH_MOMENT_ARM (7 mm) — the extension arm
+# the per-joint increment is referenced to.
+MOMENT_ARM_CURVE_DEG = (0,   10,   20,  30,   40,   50,   60,    70,    80,    90)
+MOMENT_ARM_CURVE_MM = (7.0, 7.63, 8.2, 8.7, 9.14, 9.51, 9.81, 10.04, 10.18, 10.25)
+# Back-compat scalars derived from the curve (some readers still expect these);
+# they now reflect the measured saturated value, not the old linear 12 mm.
+MOMENT_ARM_FULL_FLEXION = MOMENT_ARM_CURVE_MM[-1] / 1000.0   # m — arm at full flexion
+MOMENT_ARM_FLEXION_REF_DEG = float(MOMENT_ARM_CURVE_DEG[-1]) # deg — its flexion angle
 
 TENDON_STIFFNESS = 1.0e5       # N/m — near-inextensible steel string
 TENDON_DAMPING = 6.0           # N·s/m

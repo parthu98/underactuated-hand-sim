@@ -29,34 +29,64 @@ import config  # noqa: E402  — single source of truth
 JOINT_LIMITS_DEG = np.array(config.JOINT_RANGES_DEG, dtype=float)
 
 # =====================================================================
-# Angle-dependent tendon moment arm (linear law)
+# Angle-dependent tendon moment arm (measured calibration curve)
 # =====================================================================
-# CAD shows the moment arm is NOT constant: it grows roughly linearly with
-# joint flexion, from the extension arm (≈ config.SHEATH_MOMENT_ARM, 0°) to
-# config.MOMENT_ARM_FULL_FLEXION at config.MOMENT_ARM_FLEXION_REF_DEG. Because
-# r now depends on θ while θ depends on r (Eq. 5), the equilibrium becomes an
+# CAD shows the moment arm is NOT constant: it grows with joint flexion from the
+# extension arm (≈ config.SHEATH_MOMENT_ARM, 0°) and SATURATES toward full
+# flexion. The growth is SUB-LINEAR — earlier code assumed a straight 7→12 mm
+# line; we now interpolate the CAD-measured curve (config.MOMENT_ARM_CURVE_*).
+# Because r depends on θ while θ depends on r (Eq. 5), the equilibrium is an
 # implicit equation, solved below by Picard (fixed-point) iteration.
 _MA_ANGLE_DEP = getattr(config, "MOMENT_ARM_ANGLE_DEPENDENT", False)
-_MA_REST = float(config.SHEATH_MOMENT_ARM)                                  # m @ 0°
-_MA_FULL = float(getattr(config, "MOMENT_ARM_FULL_FLEXION", _MA_REST))      # m @ ref
-_MA_REF_RAD = np.radians(float(getattr(config, "MOMENT_ARM_FLEXION_REF_DEG", 90.0)))
-# Linear slope [m of arm per rad of flexion] and the total increment it adds.
-_MA_SLOPE = (_MA_FULL - _MA_REST) / _MA_REF_RAD if _MA_REF_RAD else 0.0
-_MA_MAX_INC = _MA_FULL - _MA_REST
-_MA_MAX_ITER = 50          # Picard cap (converges in a few steps for 7→12 mm)
+# Measured curve: flexion angle [rad] -> increment of moment arm over the 0° arm
+# [m]. The input angle is clipped to the measured span before evaluation, so
+# beyond the measured range (e.g. PIP > 90°) the arm SATURATES at the last
+# measured value (flip-free) regardless of interpolant.
+_MA_CURVE_RAD = np.radians(np.asarray(config.MOMENT_ARM_CURVE_DEG, dtype=float))
+_MA_CURVE_INC = (np.asarray(config.MOMENT_ARM_CURVE_MM, dtype=float)
+                 - config.MOMENT_ARM_CURVE_MM[0]) / 1000.0          # m, ref'd to 0°
+_MA_MAX_ITER = 50          # Picard cap (converges in a few steps for 7→10.25 mm)
 _MA_TOL = 1.0e-10          # rad — fixed-point convergence on θ
+
+# Interpolant for the increment curve. PCHIP is the preferred long-term choice:
+# it is monotonicity-preserving (no overshoot / no turn-over past the last point)
+# and C1-smooth (continuous dr/dθ for any future sensitivity / design work),
+# while still passing through every measured value EXACTLY. scipy is far lighter
+# than the simulator, but analytical_model must stay importable on machines
+# without it — so fall back to piecewise-linear np.interp when scipy is absent.
+try:
+    from scipy.interpolate import PchipInterpolator as _Pchip
+    _MA_PCHIP = _Pchip(_MA_CURVE_RAD, _MA_CURVE_INC, extrapolate=False)
+except Exception:        # scipy missing (or too old) — degrade gracefully
+    _MA_PCHIP = None
+
+
+def _ma_increment(theta_abs):
+    """Moment-arm increment over the 0° arm [m] at |θ| [rad], saturating.
+
+    Clips |θ| to the measured span first, so both interpolants hold the endpoint
+    value beyond the calibrated range (flip-free). Uses monotone-cubic PCHIP when
+    scipy is available, else piecewise-linear np.interp.
+    """
+    th = np.clip(theta_abs, _MA_CURVE_RAD[0], _MA_CURVE_RAD[-1])
+    if _MA_PCHIP is not None:
+        return _MA_PCHIP(th)
+    return np.interp(th, _MA_CURVE_RAD, _MA_CURVE_INC)
 
 
 def moment_arm_at_angle(theta_rad, r0):
-    """Per-joint tendon moment arm as a LINEAR function of joint flexion.
+    """Per-joint tendon moment arm interpolated from the CAD-measured curve.
 
-        r(θ) = r0 + slope·|θ|,   clipped so the increment stays in [0, R_full−R_rest]
+        r(θ) = r0 + ( curve(|θ|) − curve(0° ) )
 
-    ``r0`` is each joint's extension (0°) arm — typically the value extracted
-    from the MuJoCo model (≈ config.SHEATH_MOMENT_ARM). The CAD-measured
-    increment (R_full − R_rest over the reference flexion) is added on top with
-    flexion and saturates beyond the reference angle. Returns ``r0`` unchanged
-    when angle-dependence is disabled in config.
+    ``curve`` is the measured arm-vs-flexion table (config.MOMENT_ARM_CURVE_*),
+    evaluated by a monotone-cubic PCHIP interpolant (piecewise-linear np.interp
+    fallback when scipy is absent). Its increment over the 0° value is added on
+    top of each joint's extension (0°) arm ``r0`` — typically the value extracted
+    from the MuJoCo model (≈ config.SHEATH_MOMENT_ARM). The growth is sub-linear
+    and SATURATES beyond the measured range, so PIP angles past 90° keep the last
+    measured arm rather than extrapolating. Returns ``r0`` unchanged when
+    angle-dependence is disabled in config.
 
     Parameters
     ----------
@@ -73,8 +103,7 @@ def moment_arm_at_angle(theta_rad, r0):
     r0 = np.asarray(r0, dtype=float)
     if not _MA_ANGLE_DEP:
         return r0
-    inc = np.clip(_MA_SLOPE * np.abs(np.asarray(theta_rad, dtype=float)),
-                  0.0, _MA_MAX_INC)
+    inc = _ma_increment(np.abs(np.asarray(theta_rad, dtype=float)))
     return r0 + inc
 
 
@@ -94,7 +123,7 @@ def _solve_scalar(delta_L, r0, k, jl_rad):
     """
     # ---- LEGACY: constant moment arm (kept for fallback — uncomment to restore)
     # return _inner_scalar(delta_L, r0, k, jl_rad)
-    # ---- Angle-dependent moment arm (linear r(θ), implicit → fixed point) -----
+    # ---- Angle-dependent moment arm (measured r(θ), implicit → fixed point) ---
     theta = _inner_scalar(delta_L, r0, k, jl_rad)        # start from r(0)
     if not _MA_ANGLE_DEP:
         return theta
