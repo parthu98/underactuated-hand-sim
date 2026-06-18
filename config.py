@@ -168,6 +168,7 @@ SATURATION_TOL = 0.5    # deg from a joint limit that counts as saturated
 # =====================================================================
 GRIPPER_SEPARATION = 0.110            # m — default centre-to-centre finger gap (aperture)
 GRIPPER_SEPARATION_RANGE = (0.020, 0.200)  # m — UI aperture slider bounds
+GRIPPER_APERTURE_MAX_MM = 95.0       # mm — hardware maximum aperture (fully-open fingers)
 # NOTE: the open finger half-thickness is ~13 mm, so the object must FIT the gap:
 # aperture/2 - 0.013 >= object radius, else the fingers start embedded in the
 # object at rest and contact forces explode. Keep the aperture wide enough.
@@ -235,8 +236,8 @@ LOAD_TEST_SLIDE_RANGE = (-0.01, 0.15)   # m — object slide joint limits along 
 LOAD_TEST_SLIDE_DAMPING = 0.5           # N·s/m — light viscous drag on the slide
 LOAD_TEST_OBJECT_MASS_KG = 0.050        # kg — object mass (50 g default)
 LOAD_TEST_MAX_TENSION = 300.0           # N — pull-force ceiling (T slider + motor ctrlrange).
-# Sized for the ~441 N/finger servo cap below, which holds ~200 N at the default
-# grasp; raise this if a deeper/stronger grasp never fails within the slider range.
+# Sized for the ~306 N/finger servo cap below; raise this if a deeper/stronger
+# grasp never fails within the slider range (or the sweep censors Tmax at the cap).
 
 # Where along +X the object sits relative to the finger bases (set at build time;
 # the panel has no live depth slider — depth defines the grasp TYPE, so relaunch
@@ -266,12 +267,21 @@ SPOOL_RADIUS = 0.011175                 # m — measured tendon winding radius (
 
 # The ceiling comes from the servo, which winds the tendon onto a spool of radius
 # SPOOL_RADIUS:  tendon tension = servo_torque / spool_radius.
-# One servo per finger, so each flexor gets the full stall torque.
-#   Dynamixel XM430-W350-T: ~45 kgf·cm ≈ 4.41 N·m stall (max output).
-#   r_spool = 11.175 mm  →  F_max ≈ 395 N per finger.
-LOAD_TEST_SERVO_STALL_TORQUE = 4.41     # N·m — servo max output (Dynamixel XM430-W350-T, ~45 kgf·cm)
+# One servo per finger, so each flexor gets the full (de-rated) stall torque.
+KGFCM_TO_NM = 0.0980665                  # 1 kgf·cm -> N·m
+LOAD_TEST_SERVO_STALL_KGFCM = 41.0       # kgf·cm — measured servo max stall torque
+# De-rate the stall torque by a small safety margin (servos overheat and lose
+# torque near stall): usable torque = stall * SERVO_SAFETY_FACTOR.
+LOAD_TEST_SERVO_SAFETY_FACTOR = 0.85     # 15 % margin below stall ("small safety mark")
+LOAD_TEST_SERVO_STALL_TORQUE = LOAD_TEST_SERVO_STALL_KGFCM * KGFCM_TO_NM            # N·m (~4.02)
+LOAD_TEST_SERVO_USABLE_TORQUE = LOAD_TEST_SERVO_STALL_TORQUE * LOAD_TEST_SERVO_SAFETY_FACTOR  # N·m (~3.42)
 LOAD_TEST_SPOOL_RADIUS = SPOOL_RADIUS   # m — string winding radius at the servo horn (see SPOOL_RADIUS)
-LOAD_TEST_MAX_TENDON_FORCE = LOAD_TEST_SERVO_STALL_TORQUE / LOAD_TEST_SPOOL_RADIUS  # N — per-finger flexor force ceiling
+#   r_spool = 11.175 mm, usable τ ≈ 3.42 N·m  →  F_max ≈ 306 N per finger.
+LOAD_TEST_MAX_TENDON_FORCE = LOAD_TEST_SERVO_USABLE_TORQUE / LOAD_TEST_SPOOL_RADIUS  # N — per-finger flexor force ceiling
+# ΔL at which a fully-blocked flexor reaches the force ceiling (tendon is a stiff
+# spring: F = TENDON_STIFFNESS * ΔL_block). The close must add this to the slack
+# take-up, so the sweep commands a larger ΔL and lets the cap hold force at F_max.
+LOAD_TEST_DELTA_L_AT_FMAX = LOAD_TEST_MAX_TENDON_FORCE / TENDON_STIFFNESS           # m (~3.1 mm)
 LOAD_TEST_MAX_FORCE_UI_MAX = 600.0      # N — upper bound of the live "F max" slider
 
 
