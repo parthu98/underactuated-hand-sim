@@ -217,8 +217,18 @@ class LoadTestDashboard(QMainWindow):
         g = _group("TENDON TENSIONING  (take up slack, then SET ZERO)", "#3fb950")
         grid = QGridLayout()
         grid.addWidget(QLabel("jog step"), 0, 0)
-        self.jog_step = _dspin(0.002, 0.1, 0.01, 0.002, " rev")
-        grid.addWidget(self.jog_step, 0, 1, 1, 3)
+        self.jog_step = _dspin(0.002, 0.5, 0.01, 0.002, " rev")
+        grid.addWidget(self.jog_step, 0, 1)
+        b_step_down = _btn("−")
+        b_step_up = _btn("+")
+        b_step_down.setFixedWidth(28)
+        b_step_up.setFixedWidth(28)
+        b_step_down.clicked.connect(lambda: self.jog_step.setValue(
+            max(self.jog_step.value() / 2, self.jog_step.minimum())))
+        b_step_up.clicked.connect(lambda: self.jog_step.setValue(
+            min(self.jog_step.value() * 2, self.jog_step.maximum())))
+        grid.addWidget(b_step_down, 0, 2)
+        grid.addWidget(b_step_up, 0, 3)
 
         def finger_row(name, key, r):
             grid.addWidget(QLabel(name), r, 0)
