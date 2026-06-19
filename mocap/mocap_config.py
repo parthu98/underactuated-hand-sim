@@ -53,6 +53,21 @@ MOCAP_SEGMENT_MARKER_IDS = (
 
 SEGMENT_LABELS = ("base", "prox", "mid", "dist")
 
+# --- flexion-plane definition -----------------------------------------------
+# The finger flexes in a FIXED plane (no abduction), so the flexion plane is the
+# horizontal plane and its normal is simply the lab VERTICAL axis. We define the
+# plane from that known normal — no calibration flex, no extra marker needed. The
+# projection then strips every bit of out-of-plane marker tilt/rotation, and the
+# straight-pose Set Zero cancels the residual constant in-plane offsets.
+#
+# Only the NORMAL affects joint angles (they are differences of consecutive
+# segment angles, which are invariant to the in-plane long-axis reference). So
+# the single thing to get right is which axis points up.
+#
+# CHECK THIS LIVE: lift a marker off the table and watch which coordinate grows.
+MOCAP_VERTICAL_AXIS = 2      # which PhaseSpace axis is UP: 0=X, 1=Y, 2=Z
+MOCAP_VERTICAL_SIGN = +1     # +1 if that axis points up, -1 if it points down
+
 # --- servo ΔL travel --------------------------------------------------------
 # Manual/GO/jog tendon-pull ceiling [mm]. The hardware dashboard hard-caps the
 # target field at 25 mm; the mocap rig raises it (and the servo soft cap) so the
