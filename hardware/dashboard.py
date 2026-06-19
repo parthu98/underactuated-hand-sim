@@ -165,6 +165,12 @@ class _JogKeyFilter(QObject):
         if k in (Qt.Key_Right, Qt.Key_D):
             self.dash._set_jog(+1 if press else 0)
             return True
+        if k in (Qt.Key_Up, Qt.Key_W) and press:
+            self.dash._jog_step_up()
+            return True
+        if k in (Qt.Key_Down, Qt.Key_S) and press:
+            self.dash._jog_step_down()
+            return True
         if k == Qt.Key_Space and press:
             self.dash._do_estop()
             return True
@@ -354,7 +360,7 @@ class Dashboard(QMainWindow):
     def _jog_zero_group(self):
         g = _group("JOG  &  ZERO", "#ffd33d")
         lay = QVBoxLayout()
-        hint = QLabel("←/A = CCW   →/D = CW (hold to move)   Space = E-STOP")
+        hint = QLabel("←/A = CCW   →/D = CW (hold)   ↑/W = step+   ↓/S = step−   Space = E-STOP")
         hint.setStyleSheet("color:#8b949e; font-size:10px;")
         lay.addWidget(hint)
         row = QHBoxLayout()
@@ -373,8 +379,16 @@ class Dashboard(QMainWindow):
 
         row2 = QHBoxLayout()
         row2.addWidget(QLabel("step (rev)"))
-        self.jog_step = _dspin(0.001, 0.2, 0.01, 0.001)
+        self.jog_step = _dspin(0.001, 0.5, 0.01, 0.001)
         row2.addWidget(self.jog_step)
+        self.btn_step_down = _btn("−")
+        self.btn_step_up = _btn("+")
+        self.btn_step_down.setFixedWidth(28)
+        self.btn_step_up.setFixedWidth(28)
+        self.btn_step_down.clicked.connect(self._jog_step_down)
+        self.btn_step_up.clicked.connect(self._jog_step_up)
+        row2.addWidget(self.btn_step_down)
+        row2.addWidget(self.btn_step_up)
         self.btn_flip_pull = _btn("FLIP PULL DIR")
         self.btn_flip_sign = _btn("FLIP θ SIGN")
         self.btn_flip_pull.clicked.connect(self._flip_pull)
@@ -674,6 +688,14 @@ class Dashboard(QMainWindow):
     # -----------------------------------------------------------------
     def _set_jog(self, d):
         self._jog_dir = d
+
+    def _jog_step_up(self):
+        s = self.jog_step
+        s.setValue(min(s.value() * 2, s.maximum()))
+
+    def _jog_step_down(self):
+        s = self.jog_step
+        s.setValue(max(s.value() / 2, s.minimum()))
 
     def _enable_torque(self):
         if self.servo.get_state().get("connected"):
@@ -1022,6 +1044,10 @@ class Dashboard(QMainWindow):
             self._set_jog(+1)
         elif e.key() in (Qt.Key_Left, Qt.Key_A):
             self._set_jog(-1)
+        elif e.key() in (Qt.Key_Up, Qt.Key_W):
+            self._jog_step_up()
+        elif e.key() in (Qt.Key_Down, Qt.Key_S):
+            self._jog_step_down()
         elif e.key() == Qt.Key_Space:
             self._do_estop()
         else:
