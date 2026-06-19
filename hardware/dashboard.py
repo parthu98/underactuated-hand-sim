@@ -196,7 +196,9 @@ class Dashboard(QMainWindow):
         self._curve_err = None      # last analytical-curve error (surfaced on plot)
         self.captures = []          # list of {delta_L, exp{}, ana[]}
         self.last_capture = None
-        self.target_mm = DELTA_PRESETS[1] if len(DELTA_PRESETS) > 1 else DELTA_PRESETS[0]
+        # Match the ΔL spinbox's initial value (DELTA_PRESETS[0], = 0 mm) so the
+        # commanded target isn't silently ahead of the UI / actual ΔL at startup.
+        self.target_mm = DELTA_PRESETS[0]
         self.settle_status = SettleDetector.SETTLING
         self.settle_time = float("nan")
         self.auto_active = False
@@ -998,9 +1000,15 @@ class Dashboard(QMainWindow):
         t = self._last_theta
         self.ro_theta.setText(" / ".join(
             "--" if t[j] is None else f"{t[j]:.1f}" for j in JOINTS))
+        # Analytical readout tracks the ACTUAL current tendon displacement (so it
+        # reads 0 at ΔL=0 and follows a live ramp), not the commanded GO target.
+        dl_now = st.get("delta_L_mm", float("nan"))
         try:
-            ana = predictor.predict(self.target_mm, self._k_vec(), r=self.r)
-            self.ro_ana.setText(" / ".join(f"{a:.1f}" for a in ana))
+            if not np.isfinite(dl_now):
+                self.ro_ana.setText("--")
+            else:
+                ana = predictor.predict(dl_now, self._k_vec(), r=self.r)
+                self.ro_ana.setText(" / ".join(f"{a:.1f}" for a in ana))
         except Exception:
             self.ro_ana.setText("-- (no mujoco)")
 
