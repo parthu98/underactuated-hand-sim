@@ -13,10 +13,13 @@ the `hardware/` rig — only the joint-angle *measurement* changes.
   segment vectors. (A per-segment rigid body is impossible — the OWL SDK needs
   ≥4 markers for a 6-DOF body, and we only need a direction.)
 - **Flexion-plane projection.** Markers are not mounted perfectly (pitch/yaw off
-  the link axis), so each 3D segment vector is projected onto the calibrated
-  flexion plane before its angle is taken. Residual constant offset is cancelled
-  by the straight-pose **Set Zero**. The plane basis comes from a one-time
-  **calibration flex**.
+  the link axis), so each 3D segment vector is projected onto the flexion plane
+  before its angle is taken. Residual constant offset is cancelled by the
+  straight-pose **Set Zero**. Because the finger flexes in a **fixed horizontal
+  plane** (no abduction), the plane normal is just the lab **vertical axis** —
+  set once via `MOCAP_VERTICAL_AXIS` / `MOCAP_VERTICAL_SIGN`, no calibration flex.
+  Only the normal affects joint angles (they difference consecutive segment
+  angles, which are invariant to the in-plane long-axis reference).
 - **Drop-in.** `tracker.py` emits a per-segment in-plane angle `phi` keyed
   `0..3`, so `hardware/joints.py` computes `mcp/pip/dip` exactly as before.
 
@@ -26,9 +29,9 @@ the `hardware/` rig — only the joint-angle *measurement* changes.
 |------|---------|
 | `owl.py` | vendored PhaseSpace OWL2 Python SDK (pure stdlib sockets) |
 | `mocap_config.py` | mocap-only config: server IP, LED-id→segment map, paths |
-| `tracker.py` | `PhaseSpaceTracker` (+ `MockTracker`) + flexion-plane calibration |
+| `tracker.py` | `PhaseSpaceTracker` (+ `MockTracker`) + fixed-plane projection |
 | `dashboard.py` | PySide6 dashboard (subclasses the hardware one) |
-| `calibrate.py` | standalone CLI to fit the flexion plane without the GUI |
+| `calibrate.py` | CLI to CHECK the plane / confirm which axis is vertical |
 | `diagnose.py` | live dump of raw markers + segment vectors/phi (mapping/plane check) |
 | `results/` | CSV validation logs land here (gitignored) |
 
@@ -38,19 +41,23 @@ the `hardware/` rig — only the joint-angle *measurement* changes.
    which id is the palm-side (`near`) and fingertip-side (`far`) on each segment.
 2. Edit `MOCAP_SEGMENT_MARKER_IDS` in `mocap_config.py` to match, ordered
    `[base, prox, mid, dist]` as `(near_id, far_id)`. Set `MOCAP_SERVER_IP`.
+3. Set `MOCAP_VERTICAL_AXIS` / `MOCAP_VERTICAL_SIGN` to the lab axis that points
+   up. Confirm it with `python mocap/calibrate.py` (lay the finger flat — it
+   reports the least-varying axis and flags a mismatch).
 
 ## Run
 
 ```bash
 python mocap/dashboard.py --mock        # no hardware: synthetic mocap + servo
-python mocap/calibrate.py --seconds 8   # fit the flexion plane (one-time)
+python mocap/calibrate.py --seconds 5   # CHECK the plane / confirm vertical axis
 python mocap/dashboard.py               # PhaseSpace + Dynamixel
 ```
 
-Workflow in the GUI: **Connect Mocap** → **Connect Servo** → **Calibrate Flex**
-(slowly flex through the full range) → straighten and **Set Zero** → use the
-manual ΔL controls for testing / base tension, or **Auto Sweep** for a full
-validation run. Rows are logged to `mocap/results/mocap_validation_*.csv`.
+Workflow in the GUI: **Connect Mocap** → **Connect Servo** → straighten and
+**Set Zero** → use the manual ΔL controls for testing / base tension, or **Auto
+Sweep** for a full validation run. Rows are logged to
+`mocap/results/mocap_validation_*.csv`. (No calibration flex — the flexion plane
+is fixed and known from `MOCAP_VERTICAL_AXIS`.)
 
 By default the tracker connects as an OWL **slave**, so the Master Client can
 stay open at the same time (`--no-slave` to be the primary client).

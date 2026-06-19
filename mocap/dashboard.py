@@ -14,8 +14,10 @@ What is reused unchanged (imported from the hardware rig):
 
 What this file adds:
   * a PhaseSpace tracker (or a synthetic ``--mock`` tracker) in the camera slot;
-  * a one-time CALIBRATION FLEX to fit the flexion plane (toolbar);
   * CSV output redirected to ``mocap/results/`` with a ``mocap_validation`` prefix.
+
+The flexion plane is fixed (horizontal) and known from ``MOCAP_VERTICAL_AXIS`` —
+no calibration flex; just press SET ZERO at the straight pose.
 
 Run:
     python mocap/dashboard.py --mock              # no hardware (synthetic mocap + servo)
@@ -95,18 +97,9 @@ def _load_hw_dashboard():
 
 hwdash = _load_hw_dashboard()
 Dashboard = hwdash.Dashboard
-_btn = hwdash._btn
 
-from PySide6.QtCore import Qt  # noqa: E402
 from PySide6.QtGui import QFont  # noqa: E402
-from PySide6.QtWidgets import (  # noqa: E402
-    QApplication,
-    QLabel,
-    QMessageBox,
-    QSizePolicy,
-    QToolBar,
-    QWidget,
-)
+from PySide6.QtWidgets import QApplication  # noqa: E402
 
 
 class MocapDashboard(Dashboard):
@@ -120,7 +113,6 @@ class MocapDashboard(Dashboard):
         # _capture below) so none of the base capture logic is duplicated.
         self._logger_factory = functools.partial(
             CsvLogger, out_dir=results_dir, filename_prefix="mocap_validation")
-        self._calibrating = False
 
         super().__init__(tracker, servo, geom_r=geom_r, geom_note=geom_note,
                          geom_link_lengths=geom_link_lengths)
@@ -143,80 +135,11 @@ class MocapDashboard(Dashboard):
         if hasattr(self.cam, "render_enabled"):
             self.cam.render_enabled = False
 
-        self._build_calib_toolbar()
-
-    # -----------------------------------------------------------------
-    # calibration flex (added on top of the inherited UI, as a toolbar so the
-    # base central layout is untouched)
-    # -----------------------------------------------------------------
-    def _build_calib_toolbar(self):
-        tb = QToolBar("Calibration")
-        tb.setMovable(False)
-        tb.setStyleSheet("QToolBar{background:#161b22;border:0;spacing:8px;padding:6px;}")
-        self.addToolBar(Qt.TopToolBarArea, tb)
-
-        self.btn_calib = _btn("◎ CALIBRATE FLEX", "#0d1117", "#d2a8ff", "#d2a8ff")
-        self.btn_calib.clicked.connect(self._toggle_calibration)
-        tb.addWidget(self.btn_calib)
-
-        self.lbl_calib = QLabel("")
-        self.lbl_calib.setStyleSheet("color:#8b949e; font-family:Consolas; font-size:11px;")
-        self._refresh_calib_label()
-        tb.addWidget(self.lbl_calib)
-
-        spacer = QWidget()
-        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        tb.addWidget(spacer)
-
-    def _refresh_calib_label(self):
-        if self._calibrating:
-            n = len(getattr(self.cam, "_calib_samples", []))
-            self.lbl_calib.setText(f"recording… flex the finger fully  ({n} samples)")
-            self.lbl_calib.setStyleSheet("color:#d29922; font-family:Consolas; font-size:11px;")
-        elif getattr(self.cam, "calibrated", False):
-            self.lbl_calib.setText("flexion plane: CALIBRATED ✓")
-            self.lbl_calib.setStyleSheet("color:#56d364; font-family:Consolas; font-size:11px;")
-        else:
-            self.lbl_calib.setText("flexion plane: uncalibrated (assuming world plane)")
-            self.lbl_calib.setStyleSheet("color:#8b949e; font-family:Consolas; font-size:11px;")
-
-    def _toggle_calibration(self):
-        if not getattr(self.cam, "_started", False):
-            QMessageBox.warning(self, "Calibrate", "Connect the mocap first.")
-            return
-        if not self._calibrating:
-            # start
-            self.cam.begin_calibration()
-            self._calibrating = True
-            self.btn_calib.setText("■ FINISH CALIBRATION")
-        else:
-            # finish + fit
-            self._calibrating = False
-            self.btn_calib.setText("◎ CALIBRATE FLEX")
-            ok = self.cam.finalize_calibration(save=True)
-            if ok:
-                QMessageBox.information(
-                    self, "Calibrate",
-                    "Flexion plane fitted and saved to\n"
-                    f"{getattr(self.cam, 'calib_path', '?')}\n\n"
-                    "Now press ◎ SET ZERO at the straight pose.")
-            else:
-                QMessageBox.warning(
-                    self, "Calibrate",
-                    "Not enough complete samples (need all 4 segments visible "
-                    "across the flex). Try again with a slower, fuller flex.")
-            self._redraw_plots()
-        self._refresh_calib_label()
-        self._grab_focus()
-
     # -----------------------------------------------------------------
     # overrides
     # -----------------------------------------------------------------
     def _tick(self):
         super()._tick()
-        if self._calibrating:
-            self.cam.record_calibration_sample()
-            self._refresh_calib_label()
         img = self._render_live_pose()
         if img is not None:
             self._show_frame(img)
@@ -343,6 +266,8 @@ def main():
         calib_path=mcfg.MOCAP_CALIB_PATH,
         timeout_us=mcfg.MOCAP_EVENT_TIMEOUT_US,
         slave=(not args.no_slave) and mcfg.MOCAP_SLAVE,
+        vertical_axis=mcfg.MOCAP_VERTICAL_AXIS,
+        vertical_sign=mcfg.MOCAP_VERTICAL_SIGN,
     )
     if args.mock or args.mock_servo:
         servo = MockServo(spool_radius_m=args.spool_radius)
