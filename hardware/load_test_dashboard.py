@@ -2,12 +2,14 @@
 """Load-carrying (pull-out) hardware test dashboard.
 
 Physical counterpart of the *simulated* two-finger load test
-(``gripper/interactive_load_test.py``). Two tendon-driven fingers (Dynamixel
-A + B, daisy-chained on one U2D2) close around an object; a third servo (on its
-own U2D2) winds a stainless string that pulls the object out through a **Futek
-LCM300** axial load cell read over a **USB220** serial module. We tension the
-tendons, zero the cell, grip, then ramp the pull and record the **peak force at
-which the grip releases** — the load-carrying capacity. That measured force is
+(``gripper/interactive_load_test.py``). All three Dynamixels share ONE U2D2:
+the two tendon-driven fingers (A + B) are daisy-chained on one hub port and the
+pull servo hangs off another hub port — electrically the same serial bus, so the
+motors are told apart purely by Dynamixel ID. The fingers close around an object
+while the pull servo winds a stainless string that pulls the object out through a
+**Futek LCM300** axial load cell read over a **USB220** serial module. We tension
+the tendons, zero the cell, grip, then ramp the pull and record the **peak force
+at which the grip releases** — the load-carrying capacity. That measured force is
 the ground truth the analytical grip-force model will be validated against.
 
 Run::
@@ -15,12 +17,11 @@ Run::
     python3 load_test_dashboard.py --mock                 # no hardware at all
     python3 load_test_dashboard.py --mock-servo           # real cell, mock motors
     python3 load_test_dashboard.py \
-        --finger-port /dev/serial/by-id/...U2D2_A \
-        --pull-port   /dev/serial/by-id/...U2D2_B \
-        --loadcell-port /dev/ttyUSB2
+        --finger-port /dev/serial/by-id/...U2D2 \
+        --loadcell-port /dev/ttyUSB1
 
 Workflow (top to bottom in the panel):
-    1. CONNECT fingers (A+B bus), pull servo, and the load cell.
+    1. CONNECT fingers + pull (all on the one U2D2 bus) and the load cell.
     2. TENDON TENSIONING — jog each finger to take up slack, then SET ZERO it.
     3. LOAD SENSOR — TARE / ZERO the cell with no load on the string.
     4. GRIP — ramp both fingers to the grip ΔL to close on the object.
@@ -54,7 +55,7 @@ import servo  # noqa: E402  (ditto — autodetect_* call the module-level enumer
 from dashboard import _btn, _dspin, _group  # noqa: E402  (reuse widget helpers)
 from load_cell import LoadCell, MockLoadCell  # noqa: E402
 from logger import CsvLogger  # noqa: E402
-from servo import MockServo, Servo, open_bus  # noqa: E402
+from servo import MockServo, Servo, install_emergency_shutdown, open_bus  # noqa: E402
 
 
 # --- cross-platform serial-port enumeration ---------------------------------
@@ -110,7 +111,7 @@ _MOCK_RESIDUAL_N = 0.4
 
 _LOG_COLUMNS = [
     "timestamp", "trial_idx", "event", "state",
-    "force_n", "force_raw_n", "peak_n",
+    "force_n", "force_raw_n", "peak_n", "capacity_n",
     "grip_target_mm",
     "finger_a_dL_mm", "finger_b_dL_mm",
     "finger_a_current_ma", "finger_b_current_ma",
@@ -144,6 +145,10 @@ class LoadTestDashboard(QMainWindow):
         self.pull_speed_default = float(pull_speed_mm_s)
         self.finger_port = finger_port
         self.finger_ids = tuple(finger_ids)
+        # All three servos (A, B, pull) live on the SAME U2D2 bus, told apart by
+        # Dynamixel ID. We open that bus once and attach every motor to it.
+        self.bus_ids = self.finger_ids + (
+            getattr(pull, "dxl_id", config.PULL_DXL_ID),)
 
         self.state = TestState.IDLE
         self.logger = None
@@ -174,6 +179,12 @@ class LoadTestDashboard(QMainWindow):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._tick)
         self.timer.start(TICK_MS)
+
+        # Kill all three servos on ANY exit (Ctrl-C / SIGTERM too), not just a
+        # clicked window close — otherwise the motors stay energised after the
+        # process dies. _shutdown is idempotent (closeEvent + atexit + signal).
+        self._shutdown_done = False
+        install_emergency_shutdown(self._shutdown)
 
     # =================================================================
     # UI
@@ -222,8 +233,8 @@ class LoadTestDashboard(QMainWindow):
         pull_id = getattr(self.pull, "dxl_id", config.PULL_DXL_ID)
         lbl = QLabel(
             f"Fingers {config.GRIPPER_APERTURE_MAX_MM:.0f} mm apart   ·   "
-            f"A=id{a_id}  B=id{b_id} (U2D2-1)   ·   "
-            f"pull=id{pull_id} (U2D2-2)   ·   Futek LCM300")
+            f"A=id{a_id}  B=id{b_id}  pull=id{pull_id} (one U2D2)   ·   "
+            f"Futek LCM300")
         lbl.setWordWrap(True)
         lbl.setStyleSheet(
             "color:#8b949e; background-color:#161b22; border:1px solid #30363d;"
@@ -313,13 +324,27 @@ class LoadTestDashboard(QMainWindow):
         hint = QLabel("←/→ jog · ↑/↓ step · space=stop")
         hint.setStyleSheet("color:#6e7681; font-size:10px;")
         grid.addWidget(hint, 5, 3)
+
+        # Per-servo direction flip (same as the sweep dashboard's FLIP PULL DIR):
+        # toggles each motor's pull_sign so a +jog flexes/winds the right way
+        # regardless of how the horn/spool was wound. Re-jog after flipping.
+        grid.addWidget(QLabel("flip dir"), 6, 0)
+        b_flip_a = _btn("⇄ A")
+        b_flip_b = _btn("⇄ B")
+        b_flip_p = _btn("⇄ pull")
+        b_flip_a.clicked.connect(lambda: self._flip_dir("a"))
+        b_flip_b.clicked.connect(lambda: self._flip_dir("b"))
+        b_flip_p.clicked.connect(lambda: self._flip_dir("pull"))
+        grid.addWidget(b_flip_a, 6, 1)
+        grid.addWidget(b_flip_b, 6, 2)
+        grid.addWidget(b_flip_p, 6, 3)
         g.setLayout(grid)
         return g
 
     def _sensor_group(self):
         g = _group("LOAD SENSOR  (Futek LCM300)", "#d29922")
         lay = QVBoxLayout()
-        self.lbl_force = QLabel("force:  --  N    (--  lb)")
+        self.lbl_force = QLabel("force:  --  N    (--  kg)")
         self.lbl_force.setStyleSheet("color:#f0f6fc; font-size:15px; font-weight:bold;")
         lay.addWidget(self.lbl_force)
         self.lbl_peak = QLabel("peak: -- N    rate: -- Hz")
@@ -404,6 +429,9 @@ class LoadTestDashboard(QMainWindow):
         self.ro_csv = row("csv", 6)
         # The analytical grip-force mapping is the "validate later" piece.
         self.ro_pred.setText("— (analytical mapping TODO)")
+        b_save = _btn("💾 SAVE RUN → CSV", "#3fb950", border="#3fb950")
+        b_save.clicked.connect(self._save_run)
+        grid.addWidget(b_save, 7, 0, 1, 2)
         g.setLayout(grid)
         return g
 
@@ -481,6 +509,29 @@ class LoadTestDashboard(QMainWindow):
     def _is_mock_finger(self):
         return isinstance(self.fa, MockServo)
 
+    def _ensure_bus(self):
+        """Open the single shared U2D2 bus once and attach all three servos.
+
+        Fingers A/B and the pull servo are daisy-chained on one U2D2 (fingers on
+        one hub port, the pull string on another — the same serial bus), so we
+        open ONE ``PortHandler`` and attach every motor to it. Idempotent: the
+        first CONNECT button to be pressed opens the bus; the rest reuse it.
+        Returns ``(ok, message)``. A no-op for mock servos (no real port).
+        """
+        if self._is_mock_finger():
+            return True, "mock (no bus)"
+        if self._bus_handles is not None:
+            return True, "bus already open"
+        ok, ph, pk, port, baud, ids, msg = open_bus(
+            port=self.finger_port, baud=self.fa.baud,
+            expected_ids=self.bus_ids)
+        if not ok:
+            return False, msg
+        self._bus_handles = (ph, pk)
+        for s in (self.fa, self.fb, self.pull):
+            s.attach_bus(ph, pk, port, baud)
+        return True, msg
+
     def _connect_fingers(self):
         if self._is_mock_finger():
             for s in (self.fa, self.fb):
@@ -489,16 +540,10 @@ class LoadTestDashboard(QMainWindow):
             self.btn_conn_fingers.setEnabled(False)
             self._update_conn_label()
             return
-        # Real hardware: open ONE shared U2D2 bus, attach both finger servos.
-        ok, ph, pk, port, baud, ids, msg = open_bus(
-            port=self.finger_port, baud=self.fa.baud,
-            expected_ids=self.finger_ids)
+        ok, msg = self._ensure_bus()
         if not ok:
             QMessageBox.critical(self, "Fingers", msg)
             return
-        self._bus_handles = (ph, pk)
-        for s in (self.fa, self.fb):
-            s.attach_bus(ph, pk, port, baud)
         ok_a, msg_a = self.fa.connect()
         ok_b, msg_b = self.fb.connect()
         if not (ok_a and ok_b):
@@ -510,6 +555,10 @@ class LoadTestDashboard(QMainWindow):
         self._update_conn_label()
 
     def _connect_pull(self):
+        ok, msg = self._ensure_bus()
+        if not ok:
+            QMessageBox.critical(self, "Pull servo", msg or "connect failed")
+            return
         ok, msg = self.pull.connect()
         if not ok:
             QMessageBox.critical(self, "Pull servo", msg or "connect failed")
@@ -583,6 +632,21 @@ class LoadTestDashboard(QMainWindow):
         if self.pull.get_state().get("connected"):
             self.pull.set_zero()
 
+    def _flip_dir(self, key):
+        """Flip a servo's pull direction (pull_sign), like the sweep dashboard.
+
+        Mirrors hardware/dashboard.py::_flip_pull but per-target (finger A/B or
+        pull). The zero reference is unchanged, so re-jog to confirm a +jog now
+        flexes/winds the intended way.
+        """
+        s = self.pull if key == "pull" else self._finger(key)
+        new_sign = -1 if getattr(s, "pull_sign", 1) > 0 else +1
+        s.set_pull_direction(new_sign)
+        label = {"a": "finger A", "b": "finger B", "pull": "pull"}[key]
+        self.statusBar().showMessage(
+            f"{label} direction flipped: pull_sign = {new_sign} "
+            f"(re-jog to confirm)", 3000)
+
     def _jog_step_up(self):
         self.jog_step.setValue(
             min(self.jog_step.value() * 2, self.jog_step.maximum()))
@@ -604,6 +668,31 @@ class LoadTestDashboard(QMainWindow):
     def _reset_peak(self):
         self.cell.reset_peak()
         self._run_peak = 0.0
+
+    def _save_run(self):
+        """Write ONE summary row for the current run to the CSV on demand.
+
+        Snapshots the live state: max tension (the cell's magnitude-tracked
+        peak since the last tare/reset), the latched release capacity (if a
+        release was detected), pulled ΔL, grip target, both finger ΔL/current,
+        and the joint stiffnesses. Useful for logging a run that didn't trip
+        auto release detection (e.g. a manual pull-out).
+        """
+        self._ensure_logger()
+        sa = self.fa.get_state()
+        sb = self.fb.get_state()
+        sp = self.pull.get_state()
+        cst = self.cell.get_state()
+        peak_meas = abs(cst.get("peak_n", 0.0))   # best "max tension" figure
+        self._log_row("manual_save", cst.get("force_n", 0.0),
+                      cst.get("raw_n", 0.0), peak_meas, sa, sb, sp)
+        cap = (f"{self.capacity_n:.1f} N" if np.isfinite(self.capacity_n)
+               else "—")
+        self.statusBar().showMessage(
+            f"saved row → {os.path.basename(self.logger.filepath)} "
+            f"(trial {self.trial_idx}, max tension {peak_meas:.1f} N, "
+            f"pull ΔL {sp.get('delta_L_mm', 0.0):.1f} mm, capacity {cap})",
+            5000)
 
     def _go_grip(self):
         if not (self.fa.get_state().get("connected")
@@ -634,6 +723,9 @@ class LoadTestDashboard(QMainWindow):
             return
         self.trial_idx += 1
         self._run_peak = 0.0
+        self._armed = True            # looking for the next downward drop
+        self._valley = float("inf")   # lowest force since the last peak
+        self._peak_count = 0
         self.cell.reset_peak()
         self._mock_released = False
         self.pull.start_ramp(float(self.pull_spin.value()),
@@ -684,6 +776,7 @@ class LoadTestDashboard(QMainWindow):
             "force_n": force,
             "force_raw_n": raw,
             "peak_n": peak,
+            "capacity_n": self.capacity_n,
             "grip_target_mm": float(self.grip_spin.value()),
             "finger_a_dL_mm": sa.get("delta_L_mm"),
             "finger_b_dL_mm": sb.get("delta_L_mm"),
@@ -724,13 +817,27 @@ class LoadTestDashboard(QMainWindow):
         force = cst.get("force_n", 0.0)
         raw = cst.get("raw_n", 0.0)
 
-        # Release detection (force drops from the running peak while pulling).
+        # Peak detection (force drops from a running peak while pulling). We do
+        # NOT halt on a peak — pulling continues so further peaks can show up as
+        # the grip morphology shifts around the object; the operator stops
+        # manually. Hysteresis (arm → valley → re-arm) keeps one big slip from
+        # registering as many peaks during a single long fall: after a peak we
+        # disarm and watch the valley, re-arming only once the force has climbed
+        # back out of it.
         if self.state == TestState.PULLING:
-            self._run_peak = max(self._run_peak, force)
             drop = float(self.drop_spin.value()) / 100.0
-            if (self._run_peak > config.RELEASE_MIN_FORCE_N
-                    and force < (1.0 - drop) * self._run_peak):
-                self._on_release(sa, sb, sp)
+            if self._armed:
+                self._run_peak = max(self._run_peak, force)
+                if (self._run_peak > config.RELEASE_MIN_FORCE_N
+                        and force < (1.0 - drop) * self._run_peak):
+                    self._on_release(sa, sb, sp)
+            else:
+                self._valley = min(self._valley, force)
+                rearm_margin = drop * max(self._run_peak,
+                                          config.RELEASE_MIN_FORCE_N)
+                if force > self._valley + rearm_margin:
+                    self._armed = True
+                    self._run_peak = force
 
         self._update_readouts(sa, sb, sp, cst)
 
@@ -757,20 +864,27 @@ class LoadTestDashboard(QMainWindow):
             self._redraw_plots()
 
     def _on_release(self, sa, sb, sp):
-        self.capacity_n = self._run_peak
-        self.state = TestState.RELEASED
-        # Halt the pull servo at its current position.
-        self.pull.start_ramp(self.pull.current_delta_L_mm(),
-                             speed_mm_s=float(self.pull_speed.value()))
+        # A force drop from the running peak: record it as a (local) peak but
+        # KEEP PULLING and stay in PULLING so subsequent peaks can appear. The
+        # largest peak across the continuous pull is latched as the capacity;
+        # the operator halts manually (STOP PULL / space) when done.
+        self._peak_count += 1
+        peak = self._run_peak
+        if not np.isfinite(self.capacity_n) or peak > self.capacity_n:
+            self.capacity_n = peak
         self.lbl_cap.setText(
-            f"load capacity (last release): {self.capacity_n:.1f} N "
-            f"({self.capacity_n / config.LBF_TO_N:.2f} lb)")
+            f"load capacity (max peak): {self.capacity_n:.1f} N "
+            f"({self.capacity_n / config.KGF_TO_N:.3f} kg)")
         self.lbl_pull.setText(
-            f"⚠ RELEASE detected — trial {self.trial_idx}, "
-            f"peak {self.capacity_n:.1f} N")
-        self._log_row("release", self.cell.get_state().get("force_n", 0.0),
+            f"⚠ peak #{self._peak_count}: {peak:.1f} N (max "
+            f"{self.capacity_n:.1f} N) — still pulling, STOP PULL / space to halt")
+        self._log_row("peak", self.cell.get_state().get("force_n", 0.0),
                       self.cell.get_state().get("raw_n", 0.0),
-                      self._run_peak, sa, sb, sp)
+                      peak, sa, sb, sp)
+        # Disarm and start tracking the post-peak valley; the tick re-arms once
+        # the force climbs back out, so the next local maximum is found cleanly.
+        self._armed = False
+        self._valley = self.cell.get_state().get("force_n", 0.0)
 
     def _update_readouts(self, sa, sb, sp, cst):
         self.ro_state.setText(self.state)
@@ -783,7 +897,7 @@ class LoadTestDashboard(QMainWindow):
         force = cst.get("force_n", 0.0)
         self.ro_force.setText(f"{force:.2f}")
         self.lbl_force.setText(
-            f"force:  {force:7.2f}  N    ({cst.get('force_lb', 0.0):6.2f}  lb)")
+            f"force:  {force:7.2f}  N    ({cst.get('force_kg', 0.0):6.3f}  kg)")
         self.lbl_peak.setText(
             f"peak: {cst.get('peak_n', 0.0):.1f} N    "
             f"rate: {cst.get('rate_hz', 0.0):.0f} Hz")
@@ -829,7 +943,12 @@ class LoadTestDashboard(QMainWindow):
         else:
             super().keyPressEvent(e)
 
-    def closeEvent(self, e):
+    def _shutdown(self):
+        """Torque-off + disconnect all three servos, close the shared bus and
+        the load cell. Idempotent: safe from closeEvent, atexit, and signals."""
+        if getattr(self, "_shutdown_done", False):
+            return
+        self._shutdown_done = True
         for s in (self.fa, self.fb, self.pull):
             try:
                 s.disable()
@@ -848,6 +967,9 @@ class LoadTestDashboard(QMainWindow):
             pass
         if self.logger:
             self.logger.close()
+
+    def closeEvent(self, e):
+        self._shutdown()
         super().closeEvent(e)
 
 
@@ -873,7 +995,10 @@ def _build_devices(args):
         fb = Servo(port=args.finger_port, baud=args.baud, dxl_id=args.b_id,
                    spool_radius_m=args.spool_radius,
                    soft_delta_l_cap_mm=args.finger_cap)
-        pull = Servo(port=args.pull_port, baud=args.baud, dxl_id=args.pull_id,
+        # The pull servo shares the finger U2D2 bus; it is attached to the
+        # already-open bus at connect time (see _ensure_bus), so it is created
+        # with the same finger port and never opens a port of its own.
+        pull = Servo(port=args.finger_port, baud=args.baud, dxl_id=args.pull_id,
                      spool_radius_m=args.pull_spool_radius,
                      soft_delta_l_cap_mm=args.pull_cap)
     if mock_cell:
@@ -893,9 +1018,8 @@ def main():
     p.add_argument("--mock-loadcell", action="store_true",
                    help="mock the load cell (real servos)")
     p.add_argument("--finger-port", default="auto",
-                   help="U2D2 #1 (finger A+B daisy-chain) port; 'auto' scans")
-    p.add_argument("--pull-port", default="auto",
-                   help="U2D2 #2 (pull servo) port; 'auto' scans")
+                   help="U2D2 bus shared by all three servos (finger A+B + "
+                        "pull, daisy-chained); 'auto' scans")
     p.add_argument("--loadcell-port", default="auto",
                    help="USB220 serial port; 'auto' probes for a numeric stream")
     p.add_argument("--a-id", type=int, default=config.FINGER_A_DXL_ID)
