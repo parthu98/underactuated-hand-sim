@@ -31,7 +31,8 @@ an anthropomorphic 3-joint (MCP / PIP / DIP) model, plus a hardware-validation r
 - **High-fidelity sim:** `high_fidelity/` — CAD-accurate geometry, interactive
   viewer, and validation suite. Results auto-write to `high_fidelity/validation_results/`.
 - **Hardware rig:** `hardware/` — PySide6 dashboard, Dynamixel servo, RealSense
-  + ArUco joint-angle measurement.
+  + ArUco joint-angle measurement. All three Dynamixels (finger A, B, pull)
+  share one U2D2 serial bus (daisy-chained); `_ensure_bus()` opens it once.
 - **Mocap rig:** `mocap/` — PhaseSpace (OWL2) optical tracking as an alternative
   joint-angle source. Self-contained: vendored `owl.py`, `tracker.py`
   (`PhaseSpaceTracker`/`MockTracker`), `dashboard.py` (subclasses the hardware
@@ -61,6 +62,18 @@ When finger geometry or mechanics change, update **both** the high-fidelity mode
   average `N_AVG_SAMPLES` detections with a wrap-safe circular mean per marker.
 - **RE-ZERO-theta feature was removed** from the dashboard; auto-sweep advances directly.
   Don't re-add it.
+- **Load cell calibration is empirical, not a pure unit conversion.**
+  `LOADCELL_SCALE = 22.20` (N per raw tared lbf unit) was derived from an
+  origin-forced least-squares fit over 5 known-mass points. Re-derive it if the
+  cable, connector, or USB220 module is replaced — the gain error is specific to
+  the hardware chain. Force readouts are in kg (via `KGF_TO_N`), not lb.
+- **Pull-out uses multi-peak detection with hysteresis**, not halt-on-first-drop.
+  Pulling continues after a force drop; an arm → valley → re-arm cycle prevents
+  one long slip from registering as many peaks. The capacity latches the largest
+  peak across the entire pull; the operator halts manually.
+- **Emergency shutdown on any exit.** `install_emergency_shutdown()` wires
+  `atexit` + `SIGINT`/`SIGTERM` handlers so Dynamixels are de-energised on
+  Ctrl-C or kill, not just on GUI window close. Both dashboards use it.
 - **PhaseSpace = labeled POINT markers, not rigid bodies.** Two LEDs per segment
   on four segments (base/prox/mid/dist). A per-segment rigid body is impossible
   here — the OWL SDK needs ≥4 markers for a 6-DOF body (`owl.py`), and we only
@@ -95,6 +108,10 @@ python3 high_fidelity/validation.py
 
 # Hardware dashboard (real RealSense + Dynamixel)
 python3 hardware/dashboard.py          # add --mock to run with no hardware
+
+# Load-test dashboard (pull-out rig: all servos on one U2D2 + Futek LCM300)
+python3 hardware/load_test_dashboard.py              # auto-detect ports
+python3 hardware/load_test_dashboard.py --mock       # no hardware at all
 
 # Mocap dashboard (PhaseSpace optical tracking + Dynamixel)
 python3 mocap/dashboard.py             # add --mock for synthetic mocap + servo
