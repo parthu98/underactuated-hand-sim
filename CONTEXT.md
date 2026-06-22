@@ -1,18 +1,17 @@
 # Session Context
 
-**Current Task:** Built out the PhaseSpace (OWL2) optical mocap rig as an
-alternative joint-angle source and polished the hardware/load-test dashboards;
-synced the cross-AI context files to match.
+**Current Task:** Hardened the load-test dashboard and servo layer for the
+physical pull-out rig; committed and pushed all pending hardware changes.
 
 **Key Decisions:**
-- Mocap uses labeled POINT markers (2 LEDs × 4 segments), not rigid bodies; angles
-  come from projecting each segment vector onto a FIXED flexion plane (lab vertical
-  axis), no calibration flex. `MOCAP_FLEXION_SIGN` flips so servo-pull reads positive.
-- `mocap/dashboard.py` subclasses the hardware `Dashboard`, reusing
-  servo/logger/predictor/joints/auto-sweep verbatim; mocap-only knobs in `mocap_config.py`.
-- Context mirrors: `AGENTS.md` is canonical; `GEMINI.md` & `.github/copilot-instructions.md`
-  are kept as verbatim copies of it (de-symlinked on Windows).
+- All three Dynamixels (finger A, B, pull) share one U2D2 bus; `_ensure_bus()`
+  opens it once and attaches every motor. `--pull-port` argument removed.
+- Load cell uses an empirically fitted 22.20 N/raw-lbf scale (origin-forced
+  least-squares, 5 known-mass points); readouts switched from lb to kg.
+- Pull-out uses hysteresis-based multi-peak detection (arm → valley → re-arm)
+  instead of halting on the first force drop; capacity latches the largest peak.
 
 **Next Steps:**
 - Validate mocap angles against ArUco on the same sweep; reconcile any offset.
+- Run physical pull-out trials and verify peak-detection hysteresis tuning.
 - Re-add `setup-ai-context.sh` (or a hook) so the Gemini/Copilot mirrors auto-resync.
