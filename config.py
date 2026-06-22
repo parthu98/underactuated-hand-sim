@@ -296,6 +296,7 @@ LOAD_TEST_MAX_FORCE_UI_MAX = 600.0      # N — upper bound of the live "F max" 
 # the PEAK force at which the grip releases = the load-carrying capacity.
 
 LBF_TO_N = 4.4482216153                 # exact pound-force -> newton conversion
+KGF_TO_N = 9.80665                       # standard gravity: 1 kgf -> N (N / this = kg)
 
 # -- Futek LCM300 load cell (via USB220 serial module) ----------------
 LOADCELL_CAPACITY_LB = 250.0            # rated capacity [lbf] (LCM300 as ordered)
@@ -304,8 +305,13 @@ LOADCELL_SENSITIVITY_MV_V = 2.0         # rated output [mV/V] (cal cert) — for
 LOADCELL_BAUD = 9600                    # USB220 serial baud — confirm against the device
 # First float on each free-running ASCII line (handles "+0012.34", "12.34 lb", etc.).
 LOADCELL_LINE_REGEX = r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?"
-LOADCELL_INPUT_UNIT = "lb"              # unit of the parsed value: "lb" -> N, or "n"/"raw"
-LOADCELL_SCALE = 1.0                    # multiply parsed value before unit conv (tune on device)
+LOADCELL_INPUT_UNIT = "n"               # falls through _unit_factor() to 1.0: LOADCELL_SCALE already does lbf->N
+# Combined factor: lbf->N conversion AND an empirically-fitted ~5x gain
+# correction (NOT a pure unit conversion). Derived from 5 known-mass points
+# (0.5/0.75/1.0/1.25/1.2 kg) via an origin-forced least-squares fit of tared
+# raw lbf vs. expected N. Re-derive if the cable, connector, or USB220 module
+# is ever replaced — the gain error is specific to this hardware chain.
+LOADCELL_SCALE = 22.20                  # N per raw tared lbf unit (see comment above)
 LOADCELL_FILTER_ALPHA = 0.3             # low-pass on force, 0..1 (1 = raw, no filtering)
 
 # -- Servo ids / pull-out winding -------------------------------------

@@ -260,7 +260,7 @@ class LoadCell:
             return {
                 "connected": self._connected,
                 "force_n": force_n,
-                "force_lb": force_n / config.LBF_TO_N,
+                "force_kg": force_n / config.KGF_TO_N,
                 "raw_n": self._raw_n,
                 "tare_n": self._tare_n,
                 "peak_n": self._peak_n,
@@ -330,7 +330,7 @@ class MockLoadCell:
         return {
             "connected": self._connected,
             "force_n": force_n,
-            "force_lb": force_n / config.LBF_TO_N,
+            "force_kg": force_n / config.KGF_TO_N,
             "raw_n": self._sim_n,
             "tare_n": self._tare_n,
             "peak_n": self._peak_n,
