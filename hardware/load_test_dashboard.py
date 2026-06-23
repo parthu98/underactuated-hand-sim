@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import sys
 import time
 from collections import deque
@@ -152,9 +153,20 @@ class LoadTestDashboard(QMainWindow):
 
         self.state = TestState.IDLE
         self.logger = None
-        self.trial_idx = 0
+        # Persistent trial counter: each trial gets its own CSV (trialN). On
+        # startup we resume from one past the highest trialN already in results/
+        # so a fresh dashboard continues the numbering instead of overwriting.
+        self.trial_idx = self._next_trial_number()
         self.capacity_n = float("nan")     # latched load capacity (last release)
         self._run_peak = 0.0               # running peak force during a pull
+        # Active auto-tension probes: key -> probe state (phase, baseline samples,
+        # collected (ΔL, current) points). A finger is probing while it has an
+        # entry here; the tick loop fits + extrapolates, then drops the entry.
+        self._tension_seek = {}
+        # Last completed probe result per finger: key -> dict(slope, i0, knee).
+        # Kept so we can report how evenly the two fingers tensioned (matching
+        # fitted slopes ⇒ matching mechanics) once both have finished.
+        self._tension_results = {}
         self._bus_handles = None           # (port_handler, packet_handler) if shared
         self._mock_released = False
         self._t0 = time.monotonic()
@@ -298,6 +310,30 @@ class LoadTestDashboard(QMainWindow):
         b_both.clicked.connect(self._zero_both)
         grid.addWidget(b_both, 3, 0, 1, 4)
 
+        # Auto-tension by current ONSET: each finger winds slowly until its motor
+        # current starts to flicker above zero (tendon just bearing load), then
+        # ΔL=0 is set at that onset and the finger relaxes back to it. No curling —
+        # it stops right at the threshold. Both fingers use the same criterion, so
+        # both zero at their own true threshold → even. "engage current" is the
+        # mA floor above which the tendon counts as bearing load (a few mA).
+        grid.addWidget(QLabel("engage current"), 7, 0)
+        self.engage_ma = _dspin(1.0, 50.0, config.TENSION_ENGAGE_MA, 1.0, " mA")
+        grid.addWidget(self.engage_ma, 7, 1)
+        b_auto_a = _btn("⚙ A", "#3fb950", border="#3fb950")
+        b_auto_b = _btn("⚙ B", "#3fb950", border="#3fb950")
+        b_auto_a.clicked.connect(lambda: self._auto_tension(["a"]))
+        b_auto_b.clicked.connect(lambda: self._auto_tension(["b"]))
+        grid.addWidget(b_auto_a, 7, 2)
+        grid.addWidget(b_auto_b, 7, 3)
+        self.btn_auto_both = _btn("⚙ AUTO-TENSION BOTH → even threshold",
+                                  "#0d1117", "#3fb950", "#3fb950")
+        self.btn_auto_both.clicked.connect(lambda: self._auto_tension(["a", "b"]))
+        grid.addWidget(self.btn_auto_both, 8, 0, 1, 4)
+        self.lbl_tension = QLabel("auto-tension idle")
+        self.lbl_tension.setStyleSheet("color:#6e7681; font-size:10px;")
+        self.lbl_tension.setWordWrap(True)
+        grid.addWidget(self.lbl_tension, 9, 0, 1, 4)
+
         # Pull-string (sensor-end) servo: same pre-tension UX as the fingers —
         # jog to take up string slack so the cell reads ~0 at the start, then
         # SET ZERO so the pull ΔL begins at the object.
@@ -429,9 +465,9 @@ class LoadTestDashboard(QMainWindow):
         self.ro_csv = row("csv", 6)
         # The analytical grip-force mapping is the "validate later" piece.
         self.ro_pred.setText("— (analytical mapping TODO)")
-        b_save = _btn("💾 SAVE RUN → CSV", "#3fb950", border="#3fb950")
-        b_save.clicked.connect(self._save_run)
-        grid.addWidget(b_save, 7, 0, 1, 2)
+        b_new = _btn("🗂 NEW TRIAL → NEW CSV", "#3fb950", border="#3fb950")
+        b_new.clicked.connect(self._new_trial)
+        grid.addWidget(b_new, 7, 0, 1, 2)
         g.setLayout(grid)
         return g
 
@@ -621,6 +657,118 @@ class LoadTestDashboard(QMainWindow):
                 s.set_zero()
         self._maybe_tensioned()
 
+    def _auto_tension(self, keys):
+        """Arm a current-onset auto-tension on each named finger.
+
+        Each armed finger ramps slowly outward while the tick loop watches its
+        present current. While the tendon is slack the current sits at ~0 mA; the
+        instant it starts bearing load the current flickers above the engage
+        floor. When that activity is sustained, ΔL=0 is set at the ONSET (the ΔL
+        of the first above-floor sample, not the confirmation point) and the
+        finger relaxes back to it — no curling. Both fingers use the same
+        criterion, so both zero at their own true threshold → even.
+        """
+        armed = []
+        for key in keys:
+            s = self._finger(key)
+            if not s.get_state().get("connected"):
+                self.statusBar().showMessage(
+                    f"finger {key.upper()}: connect first", 2500)
+                continue
+            if getattr(s, "_estop", False):
+                s.enable()  # clear a latched estop so the wind can proceed
+            delta0 = s.current_delta_L_mm()
+            target = min(delta0 + config.TENSION_PROBE_MAX_MM,
+                         s.soft_delta_l_cap_mm)
+            if not s.start_ramp(target, speed_mm_s=config.TENSION_WIND_SPEED_MM_S):
+                self.statusBar().showMessage(
+                    f"finger {key.upper()}: wind ramp refused (soft cap?)", 3000)
+                continue
+            self._tension_seek[key] = {
+                "delta0": delta0,
+                "onset_delta": None,   # ΔL at the first above-floor sample (locked candidate)
+                "hits": 0,             # above-floor samples accumulated since that onset
+            }
+            self._tension_results.pop(key, None)  # stale until this wind finishes
+            armed.append(key.upper())
+        if armed:
+            self.lbl_tension.setText(
+                f"tensioning {', '.join(armed)} (winding to tendon engagement)…")
+            self.lbl_tension.setStyleSheet("color:#3fb950; font-size:10px;")
+
+    def _service_tension_seek(self, states):
+        """Advance any active auto-tension winds. Called once per tick.
+
+        ``states`` maps finger key -> its serviced state dict. Per finger: the ΔL
+        of the first above-floor current sample is locked as the onset candidate
+        (slack is a clean zero, so the first nonzero flicker is real contact).
+        Above-floor samples then accumulate; MIN_HITS of them confirm engagement
+        and we zero at the locked onset. If confirmation doesn't arrive within
+        SPIKE_MM more of winding the candidate was a spike and is dropped. Gives
+        up (relaxes back) if the wind reaches its travel limit without engaging.
+        """
+        if not self._tension_seek:
+            return
+        floor = float(self.engage_ma.value())
+        for key in list(self._tension_seek.keys()):
+            seek = self._tension_seek[key]
+            s = self._finger(key)
+            st = states[key]
+            cur = abs(st.get("current_ma", 0.0))
+            here = s.current_delta_L_mm()
+
+            if cur > floor:
+                if seek["onset_delta"] is None:
+                    seek["onset_delta"] = here     # first contact — lock the zero candidate
+                seek["hits"] += 1
+
+            if (seek["onset_delta"] is not None
+                    and seek["hits"] >= config.TENSION_ENGAGE_MIN_HITS):
+                self._finish_engage(key, s, seek)
+            elif (seek["onset_delta"] is not None
+                  and here - seek["onset_delta"] > config.TENSION_ENGAGE_SPIKE_MM):
+                seek["onset_delta"] = None         # never confirmed → it was a spike
+                seek["hits"] = 0
+            elif not st.get("ramping", False):     # hit travel limit, never engaged
+                self._finish_engage(key, s, seek, gave_up=True)
+
+    def _finish_engage(self, key, s, seek, gave_up=False):
+        """Zero at the detected engagement onset and relax back (or abort)."""
+        del self._tension_seek[key]
+        if gave_up or seek["onset_delta"] is None:
+            s.start_ramp(seek["delta0"], speed_mm_s=self.finger_speed)  # back off
+            self._on_seek_done(
+                key, f"⚠ {key.upper()} no engagement within "
+                     f"{config.TENSION_PROBE_MAX_MM:.0f} mm — check tendon slack / "
+                     f"wind direction (⇄ {key.upper()}).")
+            return
+        onset = seek["onset_delta"]
+        s.rezero_at_delta(onset)                       # ΔL=0 at the engagement onset
+        s.start_ramp(0.0, speed_mm_s=self.finger_speed)  # relax back to the threshold
+        self._maybe_tensioned()
+        wound = onset - seek["delta0"]
+        self._tension_results[key] = {"onset": float(onset), "wound": float(wound)}
+        self._on_seek_done(
+            key, f"{key.upper()} zeroed at engagement (slack taken up "
+                 f"{wound:+.1f} mm)")
+
+    def _on_seek_done(self, key, message):
+        """Report one finger's result; add an A↔B summary once both have finished."""
+        if self._tension_seek:
+            self.lbl_tension.setText(message)
+            self.lbl_tension.setStyleSheet("color:#3fb950; font-size:10px;")
+            self.statusBar().showMessage(message, 5000)
+            return
+        ra, rb = self._tension_results.get("a"), self._tension_results.get("b")
+        if ra and rb:
+            message += (f"  ·  both at threshold (A took up {ra['wound']:+.1f} mm, "
+                        f"B {rb['wound']:+.1f} mm)")
+        else:
+            message += "  ·  auto-tension done"
+        self.lbl_tension.setText(message)
+        self.lbl_tension.setStyleSheet("color:#3fb950; font-size:10px;")
+        self.statusBar().showMessage(message, 6000)
+
     def _jog_pull(self, direction):
         if not self.pull.get_state().get("connected"):
             return
@@ -669,30 +817,33 @@ class LoadTestDashboard(QMainWindow):
         self.cell.reset_peak()
         self._run_peak = 0.0
 
-    def _save_run(self):
-        """Write ONE summary row for the current run to the CSV on demand.
+    def _new_trial(self):
+        """Close the current trial's CSV and open a fresh one for the next trial.
 
-        Snapshots the live state: max tension (the cell's magnitude-tracked
-        peak since the last tare/reset), the latched release capacity (if a
-        release was detected), pulled ΔL, grip target, both finger ΔL/current,
-        and the joint stiffnesses. Useful for logging a run that didn't trip
-        auto release detection (e.g. a manual pull-out).
+        Each trial (10 per stiffness combination) gets its own isolated CSV named
+        ``…_trialN_…``. Pressing this advances the counter and starts a clean file
+        so one set of stiffness tuning can drive many trials without restarting
+        the dashboard. The per-trial latched state (capacity, running/measured
+        peak) is reset so the new trial starts from a clean slate.
         """
+        # If a CSV is already open for the current trial, close it and step the
+        # counter forward; otherwise reuse the (startup-resolved) trial number so
+        # the very first trial keeps the number we resumed at — no gaps.
+        if self.logger is not None:
+            self.logger.close()
+            self.logger = None
+            self.trial_idx += 1
+        self.capacity_n = float("nan")
+        self._run_peak = 0.0
+        self._peak_count = 0
+        self.cell.reset_peak()
+        self.lbl_cap.setText("load capacity (last release): —")
         self._ensure_logger()
-        sa = self.fa.get_state()
-        sb = self.fb.get_state()
-        sp = self.pull.get_state()
-        cst = self.cell.get_state()
-        peak_meas = abs(cst.get("peak_n", 0.0))   # best "max tension" figure
-        self._log_row("manual_save", cst.get("force_n", 0.0),
-                      cst.get("raw_n", 0.0), peak_meas, sa, sb, sp)
-        cap = (f"{self.capacity_n:.1f} N" if np.isfinite(self.capacity_n)
-               else "—")
+        self.lbl_pull.setText(f"ready — trial {self.trial_idx}")
+        self.lbl_pull.setStyleSheet("color:#8b949e;")
         self.statusBar().showMessage(
-            f"saved row → {os.path.basename(self.logger.filepath)} "
-            f"(trial {self.trial_idx}, max tension {peak_meas:.1f} N, "
-            f"pull ΔL {sp.get('delta_L_mm', 0.0):.1f} mm, capacity {cap})",
-            5000)
+            f"new trial → {os.path.basename(self.logger.filepath)} "
+            f"(trial {self.trial_idx})", 5000)
 
     def _go_grip(self):
         if not (self.fa.get_state().get("connected")
@@ -721,7 +872,6 @@ class LoadTestDashboard(QMainWindow):
                               TestState.PULLING):
             QMessageBox.warning(self, "Pull", "Grip the object first (GO GRIP).")
             return
-        self.trial_idx += 1
         self._run_peak = 0.0
         self._armed = True            # looking for the next downward drop
         self._valley = float("inf")   # lowest force since the last peak
@@ -743,6 +893,7 @@ class LoadTestDashboard(QMainWindow):
             self.lbl_pull.setText("pull stopped")
 
     def _estop_all(self):
+        self._tension_seek.clear()  # abort any in-flight auto-tension seeks
         for s in (self.fa, self.fb, self.pull):
             try:
                 s.e_stop()
@@ -755,11 +906,33 @@ class LoadTestDashboard(QMainWindow):
     # =================================================================
     # logging
     # =================================================================
+    def _results_dir(self):
+        return os.path.join(_HERE, "results")
+
+    def _next_trial_number(self):
+        """Scan results/ for existing ``trialN`` CSVs; return one past the max.
+
+        Lets a freshly opened dashboard resume the numbering (last file trial15 →
+        next trial16). Starts at 1 when no such CSVs exist (or the dir is absent).
+        """
+        out_dir = self._results_dir()
+        pat = re.compile(r"trial(\d+)", re.IGNORECASE)
+        max_n = 0
+        if os.path.isdir(out_dir):
+            for fn in os.listdir(out_dir):
+                if not fn.lower().endswith(".csv"):
+                    continue
+                m = pat.search(fn)
+                if m:
+                    max_n = max(max_n, int(m.group(1)))
+        return max_n + 1
+
     def _ensure_logger(self):
         if self.logger is not None:
             return
         self.logger = CsvLogger(
-            spring_set_label="loadtest",
+            spring_set_label=f"trial{self.trial_idx}",
+            out_dir=self._results_dir(),
             columns=_LOG_COLUMNS,
             filename_prefix="hw_loadtest",
         )
@@ -800,6 +973,9 @@ class LoadTestDashboard(QMainWindow):
         sa = self.fa.service(dt)
         sb = self.fb.service(dt)
         sp = self.pull.service(dt)
+
+        # Advance any active auto-tension seeks (currents are now fresh).
+        self._service_tension_seek({"a": sa, "b": sb})
 
         # Mock plant: synthesise the axial force from grip vs pull ΔL so the real
         # release-detection path (force-drop) can be exercised with no hardware.
@@ -979,28 +1155,36 @@ class LoadTestDashboard(QMainWindow):
 def _build_devices(args):
     mock_servo = args.mock or args.mock_servo
     mock_cell = args.mock or args.mock_loadcell
+    # Per-finger default pull direction: finger A winds opposite to B on this
+    # build, so positive ΔL takes up slack the right way for each (see config).
     if mock_servo:
         fa = MockServo(dxl_id=args.a_id, spool_radius_m=args.spool_radius,
-                       soft_delta_l_cap_mm=args.finger_cap)
+                       soft_delta_l_cap_mm=args.finger_cap,
+                       pull_sign=config.FINGER_A_PULL_SIGN)
         fb = MockServo(dxl_id=args.b_id, spool_radius_m=args.spool_radius,
-                       soft_delta_l_cap_mm=args.finger_cap)
+                       soft_delta_l_cap_mm=args.finger_cap,
+                       pull_sign=config.FINGER_B_PULL_SIGN)
         pull = MockServo(dxl_id=args.pull_id, spool_radius_m=args.pull_spool_radius,
-                         soft_delta_l_cap_mm=args.pull_cap)
+                         soft_delta_l_cap_mm=args.pull_cap,
+                         pull_sign=config.PULL_PULL_SIGN)
     else:
         # Finger servos are created with the shared finger port; the dashboard
         # opens ONE bus and attaches both at connect time (open_bus/attach_bus).
         fa = Servo(port=args.finger_port, baud=args.baud, dxl_id=args.a_id,
                    spool_radius_m=args.spool_radius,
-                   soft_delta_l_cap_mm=args.finger_cap)
+                   soft_delta_l_cap_mm=args.finger_cap,
+                   pull_sign=config.FINGER_A_PULL_SIGN)
         fb = Servo(port=args.finger_port, baud=args.baud, dxl_id=args.b_id,
                    spool_radius_m=args.spool_radius,
-                   soft_delta_l_cap_mm=args.finger_cap)
+                   soft_delta_l_cap_mm=args.finger_cap,
+                   pull_sign=config.FINGER_B_PULL_SIGN)
         # The pull servo shares the finger U2D2 bus; it is attached to the
         # already-open bus at connect time (see _ensure_bus), so it is created
         # with the same finger port and never opens a port of its own.
         pull = Servo(port=args.finger_port, baud=args.baud, dxl_id=args.pull_id,
                      spool_radius_m=args.pull_spool_radius,
-                     soft_delta_l_cap_mm=args.pull_cap)
+                     soft_delta_l_cap_mm=args.pull_cap,
+                     pull_sign=config.PULL_PULL_SIGN)
     if mock_cell:
         cell = MockLoadCell(baud=args.loadcell_baud)
     else:
