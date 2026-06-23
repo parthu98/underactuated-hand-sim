@@ -318,9 +318,40 @@ LOADCELL_FILTER_ALPHA = 0.3             # low-pass on force, 0..1 (1 = raw, no f
 FINGER_A_DXL_ID = 15                    # finger A (U2D2 #1, shared bus)
 FINGER_B_DXL_ID = 16                    # finger B (U2D2 #1, shared bus)
 PULL_DXL_ID = 17                        # pull servo  (U2D2 #2, its own port)
+
+# Per-servo default pull (tensioning / flex) direction (+1 or -1). Positive ΔL
+# must wind in the slack-takeup direction; this depends on how each horn/spool
+# was wound. Finger A's horn winds opposite to B on this build, so its default
+# is flipped — the ⇄ A button still toggles it live if a rebuild changes that.
+FINGER_A_PULL_SIGN = -1
+FINGER_B_PULL_SIGN = +1
+PULL_PULL_SIGN = +1
+
 PULL_SPOOL_RADIUS = SPOOL_RADIUS        # m — TODO: set once the pull horn/spool is designed
 PULL_SPEED_MM_S = 2.0                   # default string take-up (winding) speed
 PULL_MAX_DELTA_MM = 120.0               # pull-servo soft ΔL cap (string take-up range)
+
+# -- Auto-tensioning (detect tendon engagement by current onset) ------
+# Observed on the rig: while the tendon is slack the motor (holding position
+# under no load) reads a steady ~0 mA; the instant it starts to bear load the
+# present current begins to flicker just above zero (0→3→5 mA…). That onset of
+# sustained nonzero current activity is a crisp, CURL-FREE marker of the motion
+# threshold (cable just taut, finger still straight). Auto-tension winds each
+# finger slowly until that activity is sustained, sets ΔL=0 at the onset, and
+# relaxes back — so both fingers zero at their own true threshold → even.
+#
+# (This replaces the earlier probe-and-extrapolate scheme: the onset signal
+# locates the knee directly, so we never have to curl the finger to find it.)
+TENSION_WIND_SPEED_MM_S = 1.5         # slow wind while watching for engagement
+TENSION_PROBE_MAX_MM = 30.0           # give-up wind distance (also the ramp target)
+# Engage floor sits BELOW the 1-unit current quantum (2.69 mA for the XM430) so
+# the very first flicker ("0→3 mA") registers, but above a clean slack zero. The
+# onset (ΔL of the first above-floor sample) is locked as the zero candidate; it
+# is confirmed once MIN_HITS above-floor samples accumulate, or discarded as a
+# spike if confirmation doesn't arrive within SPIKE_MM more of winding.
+TENSION_ENGAGE_MA = 2.0               # current floor; readings above it = tendon bearing load
+TENSION_ENGAGE_MIN_HITS = 5           # above-floor samples (since onset) that confirm engagement
+TENSION_ENGAGE_SPIKE_MM = 2.0         # un-confirmed candidate onset is dropped after this much extra wind
 
 # -- Release detection ------------------------------------------------
 RELEASE_DROP_FRAC = 0.30                # force drop from the running peak that flags release

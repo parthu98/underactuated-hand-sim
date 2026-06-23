@@ -625,6 +625,25 @@ class Servo:
         """Set the pull direction (+1 or -1)."""
         self.pull_sign = 1 if sign >= 0 else -1
 
+    def rezero_at_delta(self, delta_l_mm: float) -> None:
+        """Redefine ΔL=0 at the position that currently reads ``delta_l_mm``.
+
+        Used by auto-tensioning to place the zero reference at the extrapolated
+        motion threshold (the "knee"), which sits *behind* the present position
+        after a probe — so we move the reference, not the motor. The motor stays
+        put; afterwards :meth:`current_delta_L_mm` reads the (positive) overshoot
+        past the knee, and a ``start_ramp(0)`` returns the finger to the knee.
+        """
+        # _delta_mm_to_goal_rev maps the target ΔL to an absolute rev under the
+        # CURRENT zero; adopting that rev as the new zero makes that position read 0.
+        self._zero_rev = self._delta_mm_to_goal_rev(delta_l_mm)
+        self._ramp_active = False
+        self._ramp_target_delta_mm = 0.0
+
+    def present_delta_L_mm(self) -> float:
+        """ΔL (mm) of the present *measured* position (vs the commanded goal)."""
+        return self._goal_rev_to_delta_mm(self._pos_rev)
+
     # -- motion: jog ------------------------------------------------------
     def jog(self, direction: int, step_rev: float = 0.02) -> Tuple[bool, str]:
         """Nudge the goal by ``step_rev`` revolutions in ``direction`` (+1/-1).
@@ -941,6 +960,14 @@ class MockServo:
 
     def set_pull_direction(self, sign: int) -> None:
         self.pull_sign = 1 if sign >= 0 else -1
+
+    def rezero_at_delta(self, delta_l_mm: float) -> None:
+        self._zero_rev = self._delta_mm_to_goal_rev(delta_l_mm)
+        self._ramp_active = False
+        self._ramp_target_delta_mm = 0.0
+
+    def present_delta_L_mm(self) -> float:
+        return self._goal_rev_to_delta_mm(self._pos_rev)
 
     # -- motion -----------------------------------------------------------
     def jog(self, direction: int, step_rev: float = 0.02) -> Tuple[bool, str]:
