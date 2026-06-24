@@ -297,9 +297,11 @@ class LoadTestDashboard(QMainWindow):
         Falls back to the config.py per-joint defaults if the selected key is
         somehow missing (e.g. the dict was edited while the panel was open).
         """
-        key = self.stiffness_combo.currentText()
-        return config.LOAD_TEST_STIFFNESS_CONFIGS.get(
-            key, (config.MCP_STIFFNESS, config.PIP_STIFFNESS, config.DIP_STIFFNESS))
+        default = (config.MCP_STIFFNESS, config.PIP_STIFFNESS, config.DIP_STIFFNESS)
+        combo = getattr(self, "stiffness_combo", None)
+        if combo is None:
+            return default
+        return config.LOAD_TEST_STIFFNESS_CONFIGS.get(combo.currentText(), default)
 
     def _update_stiffness_label(self):
         k_mcp, k_pip, k_dip = self._selected_stiffness()
@@ -772,17 +774,26 @@ class LoadTestDashboard(QMainWindow):
                               TestState.PULLING):
             QMessageBox.warning(self, "Pull", "Grip the object first (GO GRIP).")
             return
+        # Open the trial CSV BEFORE the pull begins (NEW TRIAL may not have been
+        # pressed yet) so logging is guaranteed from the very first sample, and
+        # write an explicit pull_start marker row so every START PULL is recorded
+        # even if the pull is stopped before any release peak is detected.
+        self._ensure_logger()
         self._run_peak = 0.0
         self._armed = True            # looking for the next downward drop
         self._valley = float("inf")   # lowest force since the last peak
         self._peak_count = 0
         self.cell.reset_peak()
         self._mock_released = False
+        cst = self.cell.get_state()
+        self._log_row("pull_start", cst.get("force_n", 0.0),
+                      cst.get("raw_n", 0.0), 0.0,
+                      self.fa.get_state(), self.fb.get_state(),
+                      self.pull.get_state())
         self.pull.start_ramp(float(self.pull_spin.value()),
                              speed_mm_s=float(self.pull_speed.value()))
         self.state = TestState.PULLING
         self.lbl_pull.setText(f"pulling — trial {self.trial_idx}…")
-        self._ensure_logger()
 
     def _stop_pull(self):
         # Freeze the pull servo at its current ΔL (don't drop torque).
