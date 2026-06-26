@@ -205,7 +205,15 @@ GRIPPER_TIMESTEP = 0.00025            # s
 GRIPPER_CONTACT_SOLREF = "0.0005 1"   # ≈ 2×GRIPPER_TIMESTEP, stiffest stable
 GRIPPER_CONTACT_SOLIMP = "0.99 0.9999 0.0001 0.5 2"   # dmin→1: rigid boundary
 GRIPPER_CONTACT_CONDIM = 6            # 6 = normal + slide + torsional + rolling
-GRIPPER_CONTACT_FRICTION = "1 0.1 0.01"   # slide, torsional, rolling
+# Per-surface sliding friction (slide, torsional, rolling). The finger phalanges are
+# printed PLA; the grasped object is wrapped in duct tape. MuJoCo combines two geoms'
+# friction by the elementwise MAX, so the finger<->object interface mu = max(PLA, tape)
+# = the duct-tape value (0.5), while finger<->finger = PLA (0.4).
+FRICTION_MU_PLA = 0.4                 # printed-PLA finger surface
+FRICTION_MU_DUCTTAPE = 0.5            # duct-tape object surface (= finger<->object interface mu)
+GRIPPER_FINGER_FRICTION = f"{FRICTION_MU_PLA} 0.1 0.01"       # default for the phalanx geoms
+GRIPPER_OBJECT_FRICTION = f"{FRICTION_MU_DUCTTAPE} 0.1 0.01"  # override on the object geoms
+GRIPPER_CONTACT_FRICTION = GRIPPER_FINGER_FRICTION   # back-compat: the <default> geom block
 GRIPPER_FRICTION_CONE = "elliptic"    # elliptic + impratio is the anti-slip combo
 GRIPPER_IMPRATIO = 10.0               # raise (→50-200) for firmer free-object load tests
 
