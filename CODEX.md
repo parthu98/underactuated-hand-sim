@@ -1,8 +1,7 @@
 # Codex — Tool-Specific Instructions
 
-> **Read `AGENTS.md` first.** It holds the shared truth: architecture, the
-> source-of-truth (`config.py`), the NO-AI-WATERMARK rule, workflows, and the
-> two-layer memory policy. This file adds ONLY Codex's dual-graph mechanics.
+> **All project context lives in `AGENTS.md`.** This file exists only so Codex
+> picks up project instructions. Never duplicate project info here.
 
 ## Context layering (Codex)
 
