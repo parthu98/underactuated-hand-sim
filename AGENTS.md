@@ -1,15 +1,16 @@
 # Project Context — Shared Across All AI Agents
 
-> **Canonical instructions file.** Claude, Gemini, Codex, and Copilot all read this.
-> Tool-specific files (`CLAUDE.md`, `CODEX.md`) reference this file and add only
-> their own mechanics on top. Edit shared rules HERE — not in the per-tool files.
+> **Canonical instructions file.** Claude, Gemini, Codex, Copilot, and any future
+> AI tool all read THIS file. Tool-specific files (`CLAUDE.md`, `CODEX.md`) exist
+> only for their own protocol mechanics (MCP, context layering) and contain ZERO
+> project context. **Edit shared rules HERE — never in the per-tool files.**
 
 This project contains MuJoCo simulations for a tendon-driven underactuated finger:
 an anthropomorphic 3-joint (MCP / PIP / DIP) model, plus a hardware-validation rig.
 
 ---
 
-## 👤 User Preferences (MANDATORY)
+## User Preferences (MANDATORY)
 
 - **Attribution — NO AI WATERMARKS.** All code, comments, and commit messages are
   attributed to the user (Namit Nair). Never add `Co-Authored-By` lines, "Generated
@@ -19,17 +20,21 @@ an anthropomorphic 3-joint (MCP / PIP / DIP) model, plus a hardware-validation r
 
 ---
 
-## 🏗️ Architecture & Source of Truth
+## Architecture & Source of Truth
 
 - **Single Source of Truth:** `config.py` — all physical & numerical parameters
-  (geometry, joint limits, tendon properties, spool radius, etc.) live here.
+  (geometry, joint limits, tendon properties, spool radius, friction, etc.) live here.
   Notably `config.SPOOL_RADIUS = 0.011175 m` (measured Ø22.35 mm) is the one
   winding-radius constant used by both the hardware rig and the load-test ceiling.
 - **Physics model:** `finger_model.py` — builds the MuJoCo model from `config.py`.
+  Also provides `update_fixed_tendon_moment_arms()` which rewrites MuJoCo fixed-tendon
+  wrap coefficients in-place every step, following the CAD-measured angle-dependent
+  moment arm curve. No-op when `config.MOMENT_ARM_ANGLE_DEPENDENT` is False.
 - **Analytical model:** `analytical_model.py` — closed-form morphology laws via
   energy minimization (incl. the angle-dependent tendon moment arm).
 - **High-fidelity sim:** `high_fidelity/` — CAD-accurate geometry, interactive
   viewer, and validation suite. Results auto-write to `high_fidelity/validation_results/`.
+  The validation loop calls `finger_model.update_fixed_tendon_moment_arms()` each step.
 - **Paper table generation:** `high_fidelity/generate_tables.py` — generates Tables II/III/IV
   for the RAL 2026 publication from validation results.
 - **Gripper load-test sim:** `gripper/` — the *simulated* two-finger pull-out rig
@@ -41,6 +46,15 @@ an anthropomorphic 3-joint (MCP / PIP / DIP) model, plus a hardware-validation r
   and (b) `--combos` mode → the 3 hardware spring sets as a Tmax bar chart
   (`load_test_combos_Tmax.png`). All geometry/friction/servo numbers come from
   `config.py` (`LOAD_TEST_*`, `FRICTION_MU_*`), so the sim tracks the real fixture.
+- **Capstan load test:** `gripper/capstan/capstan_load_test.py` — self-contained
+  load-test variant that wraps the tendon around a capstan spool for mechanical
+  advantage. Includes a mu-sweep and stiffness-combo results pipeline.
+- **Gripper geometry (hardware-faithful):** Each finger connects to a central
+  mounting block through a 20×20×15 mm base link (`config.BASE_LINK_*`). The
+  block (`config.GRIPPER_BLOCK_SIZE_MM = 30×120×30 mm`) sits behind the MCP
+  joints and is drawn non-colliding. Object geoms carry duct-tape friction
+  overrides (`config.GRIPPER_OBJECT_FRICTION`); finger phalanges use PLA
+  friction (`config.FRICTION_MU_PLA = 0.4`, `config.FRICTION_MU_DUCTTAPE = 0.5`).
 - **Hardware rig:** `hardware/` — PySide6 dashboard, Dynamixel servo, RealSense
   + ArUco joint-angle measurement. All three Dynamixels (finger A, B, pull)
   share one U2D2 serial bus (daisy-chained); `_ensure_bus()` opens it once.
@@ -58,7 +72,7 @@ When finger geometry or mechanics change, update **both** the high-fidelity mode
 
 ---
 
-## 📌 Key Technical Decisions (durable — read before touching the model)
+## Key Technical Decisions (durable — read before touching the model)
 
 - **Spool radius is unified:** `config.SPOOL_RADIUS = 0.011175 m` (measured Ø22.35 mm)
   is the single source for the servo ΔL↔revolutions mapping *and* the load-test force
@@ -67,8 +81,10 @@ When finger geometry or mechanics change, update **both** the high-fidelity mode
   from **7 mm @ 0°** to **~10.25 mm @ 90°** (CAD-measured at 10° steps; saturates
   toward full flexion — not a straight line). `analytical_model.py` solves the
   resulting implicit equilibrium via a **Picard fixed-point** iteration over a
-  PCHIP-interpolated curve. Toggle with `config.MOMENT_ARM_ANGLE_DEPENDENT`; the
-  constant-arm path is the documented fallback.
+  PCHIP-interpolated curve. `finger_model.update_fixed_tendon_moment_arms()` makes
+  MuJoCo track the same curve by rewriting fixed-tendon wrap_prm each step.
+  Toggle with `config.MOMENT_ARM_ANGLE_DEPENDENT`; the constant-arm path is the
+  documented fallback.
 - **HW-validation analysis tool** (`high_fidelity/analyze_hw_validation.py`): picks a
   dataset by substring / path / latest; cleans data (drops ΔL=0, marker+PIP guards,
   per-ΔL MAD outlier rejection); reports M12/M32 agreement, angle error, repeatability,
@@ -102,12 +118,12 @@ When finger geometry or mechanics change, update **both** the high-fidelity mode
   which is derived live from the stationary base markers). Residual marker
   pitch/yaw is removed by the projection + the straight-pose Set Zero.
 
-> Live/evolving decisions beyond this list live in the dual-graph MCP store and
-> `CONTEXT.md` (see Shared Memory below). This list is for the stable, load-bearing ones.
+> Live/evolving decisions beyond this list live in `CONTEXT.md` and the dual-graph
+> MCP store. This list is for the stable, load-bearing ones.
 
 ---
 
-## 🔧 Key Workflows
+## Key Workflows
 
 ```bash
 # Environment
@@ -128,6 +144,14 @@ python3 hardware/dashboard.py          # add --mock to run with no hardware
 python3 hardware/load_test_dashboard.py              # auto-detect ports
 python3 hardware/load_test_dashboard.py --mock       # no hardware at all
 
+# Stiffness sweep (full 10×10 grid or 3 hardware combos)
+python3 gripper/stiffness_sweep.py                     # full sweep → heatmap
+python3 gripper/stiffness_sweep.py --combos             # 3 spring sets → bar chart
+python3 gripper/stiffness_sweep.py --replot              # re-render from CSV
+
+# Capstan load test
+python3 gripper/capstan/capstan_load_test.py
+
 # Mocap dashboard (PhaseSpace optical tracking + Dynamixel)
 python3 mocap/dashboard.py             # add --mock for synthetic mocap + servo
 python3 mocap/calibrate.py --seconds 5 # CHECK plane / confirm which axis is up
@@ -138,7 +162,7 @@ python3 high_fidelity/analyze_hw_validation.py   # picks latest dataset by defau
 
 ---
 
-## 🧠 Shared Memory — how to NOT forget across sessions
+## Shared Memory — how to NOT forget across sessions
 
 Memory is split into two layers. Use both.
 
@@ -156,5 +180,6 @@ Memory is split into two layers. Use both.
    This is the fallback any tool can read even without the MCP. Read it FIRST.
 
 > Tool-specific retrieval mechanics (dual-graph `graph_continue`, confidence caps,
-> context layering) live in `CLAUDE.md` / `CODEX.md`. Gemini & Copilot can ignore
-> those and rely on `config.py`, this file, and `CONTEXT.md`.
+> context layering) live in `CLAUDE.md` / `CODEX.md`. Those files contain NO
+> project context — they exist only for protocol handshakes. All project knowledge
+> comes from this file, `config.py`, and `CONTEXT.md`.
