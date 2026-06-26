@@ -1,0 +1,4 @@
+combo,k_mcp,k_pip,k_dip,Tmax_frictionless_N,Tmax_capstan_N,mu,ratio,status_frictionless,status_capstan
+Uniform — medium (S2·S2·S2),0.165,0.165,0.165,30.171428571428574,38.57142857142857,0.15,1.2784090909090906,slip,slip
+Graded stiff→soft (S1·S2·S3),0.789,0.165,0.072,25.007142857142856,28.821428571428573,0.15,1.152527849185947,slip,slip
+Graded soft→stiff (S3·S2·S1),0.072,0.165,0.789,55.714285714285715,77.27142857142857,0.15,1.386923076923077,slip,slip
