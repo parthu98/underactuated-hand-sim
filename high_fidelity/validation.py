@@ -169,6 +169,7 @@ def mujoco_equilibrium(k_vec, delta_L):
     POS_TOL = np.radians(0.02)   # 0.02 deg drift over the window = settled
     q_hist = np.zeros((POS_WIN, 3))
     for step in range(n_max):
+        finger_model.update_fixed_tendon_moment_arms(model, data)
         mujoco.mj_step(model, data)
         q_now = np.array([data.qpos[jid] for jid in jids])
         q_hist[step % POS_WIN] = q_now
