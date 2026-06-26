@@ -84,30 +84,34 @@ SWEEP = SimpleNamespace(
     # (computed below from config so they always track the measured springs).
 
     # ---- Object (the thing being grasped) ----------------------------
+    # Hardware-matched: a vertical Ø80 mm cylinder (the duct-tape-wrapped object),
+    # standing on its axis (+Z), as logged by the load-test rig. All numbers come
+    # from config so the sim scene tracks the real fixture exactly.
     object_shape="cylinder",  # box | cylinder | sphere
     object_rotated=True,      # 90° about Y → cylinder stands VERTICAL (axis +Z),
-                              #   fingers wrap its Ø70 mm cross-section, pull is ⟂.
-    object_diameter_mm=70.0,  # real grasped object is 70 mm → radius 35 mm
-    object_length_mm=70.0,    # full height of the cylinder (half-length = 35 mm)
+                              #   fingers wrap its Ø80 mm cross-section, pull is ⟂.
+    object_diameter_mm=config.LOAD_TEST_OBJECT_DIAMETER_MM,  # 80 mm → radius 40 mm
+    object_length_mm=config.LOAD_TEST_OBJECT_HEIGHT_MM,      # 80 mm full height (half = 40 mm)
     object_mass_kg=config.LOAD_TEST_OBJECT_MASS_KG,
 
     # ---- Scene geometry ----------------------------------------------
-    # aperture = hardware fully-open gap. NOTE: the sim finger half-thickness is
-    # ~13 mm, so aperture/2 - 13 must clear the object radius or the straight
-    # fingers start embedded at rest. 95 mm vs r=35 mm leaves only ~0.5 mm — if
-    # that proves unstable the run auto-reports it; bump aperture_mm a hair.
-    aperture_mm=config.GRIPPER_APERTURE_MAX_MM,   # 95 mm hardware max
+    # aperture_mm here is the CENTRE-TO-CENTRE base-link separation (from config),
+    # i.e. inner aperture (77 mm) + one base-link width. The Ø80 mm object is wider
+    # than the 77 mm inner gap, so the fingers must be pre-splayed at rest
+    # (LOAD_TEST_INIT_SPLAY_DEG, applied in measure_cell) — otherwise straight
+    # fingers start embedded and the cell blows up.
+    aperture_mm=config.LOAD_TEST_SEPARATION * 1000.0,  # centre-to-centre sep (mm); inner aperture = 77 mm
     # Mount height raised so the rotated (vertical) cylinder clears the floor:
     # object bottom = mount_height - object_half_length must be > 0.
-    mount_height_m=0.050,     # finger-base & object-centre height above floor
-    object_depth_x_m=config.LOAD_TEST_OBJECT_DEPTH_X,  # X anchor of the grasp
+    mount_height_m=config.LOAD_TEST_MOUNT_HEIGHT,   # 0.060 m — finger-base/object-centre height
+    object_depth_x_m=config.LOAD_TEST_OBJECT_DEPTH_X,  # X anchor of the grasp (~0.088 m)
     gravity=True,             # load test runs upright, with gravity (like hw)
 
     # ---- Actuation / servo cap ---------------------------------------
     # Close command: large enough to fully envelop AND saturate the flexor; the
     # servo force cap (config.LOAD_TEST_MAX_TENDON_FORCE) then limits grip force,
     # so the holding capacity is set by the servo torque, not by ΔL.
-    close_delta_l_mm=config.GRIPPER_MAX_PULL_MM,   # 40 mm command (force-capped)
+    close_delta_l_mm=config.LOAD_TEST_CLOSE_DELTA_L_MM,   # 15 mm command (force-capped)
     max_flexor_force_n=config.LOAD_TEST_MAX_TENDON_FORCE,  # per-finger servo cap
 
     # ---- Tension ramp / break-free detection -------------------------
@@ -178,6 +182,14 @@ def measure_cell(model, data, ids, k_mcp, k_pip, k_dip):
     dt = model.opt.timestep
     mujoco.mj_resetData(model, data)
     mujoco.mj_forward(model, data)
+
+    # Pre-splay both MCPs to the config init angle so the straight fingers start
+    # OUTSIDE the Ø80 mm object: it is wider than the 77 mm inner aperture, so
+    # un-splayed fingers begin embedded and the contact solver blows up.
+    for f in "ab":
+        data.qpos[ids.qadr[f]["mcp"]] = math.radians(config.LOAD_TEST_INIT_SPLAY_DEG)
+    mujoco.mj_forward(model, data)
+
     cur = {"a": 0.0, "b": 0.0}
 
     # Phase 1 — close on the object (force-capped flexor).
@@ -269,8 +281,8 @@ def plot_heatmap(Tmax, rho_grid, path):
     ax.set_ylabel(r"$\rho_1 = k_1 / k_2$   (MCP / PIP)")
     ax.set_title(
         f"Gripper holding capacity vs stiffness ratios\n"
-        f"object Ø{SWEEP.object_diameter_mm:.0f} mm · aperture "
-        f"{SWEEP.aperture_mm:.0f} mm · servo cap "
+        f"object Ø{SWEEP.object_diameter_mm:.0f} mm · inner aperture "
+        f"{config.LOAD_TEST_APERTURE_INNER_MM:.0f} mm · servo cap "
         f"{SWEEP.max_flexor_force_n:.0f} N/finger · $k_2$={K2_REF:.3f} N·m/rad",
         fontsize=10)
 
@@ -318,7 +330,8 @@ def run_sweep(quick=False):
           f"k2(ref)={K2_REF:.3f} N·m/rad")
     print(f"[sweep] object Ø{SWEEP.object_diameter_mm:.0f} mm "
           f"({'rotated/vertical' if SWEEP.object_rotated else 'flat'}) · "
-          f"aperture {SWEEP.aperture_mm:.0f} mm · mount {SWEEP.mount_height_m*1000:.0f} mm")
+          f"inner aperture {config.LOAD_TEST_APERTURE_INNER_MM:.0f} mm · "
+          f"mount {SWEEP.mount_height_m*1000:.0f} mm")
     print(f"[sweep] servo {config.LOAD_TEST_SERVO_STALL_KGFCM:.0f} kgf·cm × "
           f"{config.LOAD_TEST_SERVO_SAFETY_FACTOR:.2f} → "
           f"F_max {SWEEP.max_flexor_force_n:.0f} N/finger · "
@@ -386,13 +399,84 @@ def replot_from_csv():
     print(f"[sweep] re-rendered {n}×{n} heatmap → {png_path}")
 
 
+def run_combos():
+    """Run the simulated load test for the 3 hardware-matched stiffness combos.
+
+    Builds the hardware-matched scene once, then for each combo in
+    config.LOAD_TEST_STIFFNESS_COMBOS closes the grip and ramps the pull to the
+    break-free tension (Tmax holding capacity), via the same measure_cell used by
+    the full sweep. Writes a small CSV + a Tmax-per-combo bar chart.
+    """
+    os.makedirs(SWEEP.out_dir, exist_ok=True)
+    xml = ilt.generate_load_test_xml(
+        separation=SWEEP.aperture_mm * MM,
+        mount_height=SWEEP.mount_height_m,
+        object_shape=SWEEP.object_shape,
+        object_size_mm=SWEEP.object_diameter_mm / 2.0,
+        object_length_mm=SWEEP.object_length_mm / 2.0,
+        object_depth_x=SWEEP.object_depth_x_m,
+        gravity_on=SWEEP.gravity)
+    model = mujoco.MjModel.from_xml_path(xml)
+    data = mujoco.MjData(model)
+    mujoco.mj_forward(model, data)
+    ids = ilt._make_ids(model)
+    ids.Lrest = {f: float(data.ten_length[ids.tendon[f]]) for f in "ab"}
+
+    print(f"[combos] object Ø{SWEEP.object_diameter_mm:.0f} mm · inner aperture "
+          f"{config.LOAD_TEST_APERTURE_INNER_MM:.0f} mm · close ΔL "
+          f"{SWEEP.close_delta_l_mm:.0f} mm · servo cap "
+          f"{SWEEP.max_flexor_force_n:.0f} N/finger")
+
+    rows = []
+    for name in config.LOAD_TEST_STIFFNESS_COMBOS:
+        k_mcp, k_pip, k_dip = config.LOAD_TEST_STIFFNESS_CONFIGS[name]
+        T, status, grip, slip = measure_cell(model, data, ids, k_mcp, k_pip, k_dip)
+        rows.append({"combo": name, "k_mcp": k_mcp, "k_pip": k_pip, "k_dip": k_dip,
+                     "Tmax_N": T, "status": status, "grip_close_N": grip,
+                     "final_slip_mm": slip})
+        print(f"  {name:32s} k=({k_mcp:.3f},{k_pip:.3f},{k_dip:.3f})  "
+              f"Tmax={T:6.1f} N  {status}")
+
+    csv_path = os.path.join(SWEEP.out_dir, "load_test_combos.csv")
+    with open(csv_path, "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
+        w.writeheader(); w.writerows(rows)
+
+    png_path = os.path.join(SWEEP.out_dir, "load_test_combos_Tmax.png")
+    fig, ax = plt.subplots(figsize=(7.0, 4.5), constrained_layout=True)
+    labels = [r["combo"] for r in rows]
+    tvals = [r["Tmax_N"] for r in rows]
+    bars = ax.bar(range(len(rows)), tvals, color="#3b78b8")
+    ax.set_xticks(range(len(rows)))
+    ax.set_xticklabels(labels, rotation=20, ha="right", fontsize=8)
+    ax.set_ylabel(r"$T_{\max}$  holding capacity  (N)")
+    ax.set_title(f"Load-test holding capacity — 3 stiffness combos\n"
+                 f"object Ø{SWEEP.object_diameter_mm:.0f} mm · inner aperture "
+                 f"{config.LOAD_TEST_APERTURE_INNER_MM:.0f} mm · close ΔL "
+                 f"{SWEEP.close_delta_l_mm:.0f} mm", fontsize=10)
+    for b, r in zip(bars, rows):
+        ax.text(b.get_x() + b.get_width()/2, b.get_height(),
+                f"{r['Tmax_N']:.0f}\n{r['status']}", ha="center", va="bottom", fontsize=8)
+    ax.grid(axis="y", alpha=0.3)
+    fig.savefig(png_path, dpi=200)
+    plt.close(fig)
+
+    print(f"[combos] CSV     → {csv_path}")
+    print(f"[combos] bar     → {png_path}")
+    return csv_path, png_path
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="Gripper stiffness-ratio holding-capacity sweep.")
     ap.add_argument("--quick", action="store_true", help="3×3 smoke grid (fast).")
     ap.add_argument("--replot", action="store_true",
                     help="re-render the heatmap from the existing CSV (no sims).")
+    ap.add_argument("--combos", action="store_true",
+                    help="run the 3 hardware-matched stiffness combos (CSV + Tmax bar chart).")
     args = ap.parse_args()
-    if args.replot:
+    if args.combos:
+        run_combos()
+    elif args.replot:
         replot_from_csv()
     else:
         run_sweep(quick=args.quick)
