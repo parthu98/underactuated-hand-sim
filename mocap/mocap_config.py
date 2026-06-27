@@ -49,10 +49,10 @@ MOCAP_SLAVE = True
 #   PIP / middle link  : near=7, far=1
 #   DIP / distal link  : near=2, far=0   (the (0,2) pair we first called "base")
 MOCAP_SEGMENT_MARKER_IDS = (
-    (14, 12),   # base / palm
-    (15, 10),   # proximal phalanx  (MCP link)
-    (11, 13),   # middle phalanx    (PIP link)
-    (8, 9),   # distal phalanx    (DIP link)
+    (7 ,6),   # base / palm
+    (5, 4),   # proximal phalanx  (MCP link)
+    (3, 2),   # middle phalanx    (PIP link)
+    (1, 0),   # distal phalanx    (DIP link)
 )
 
 SEGMENT_LABELS = ("base", "prox", "mid", "dist")
