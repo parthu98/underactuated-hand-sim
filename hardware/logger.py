@@ -66,6 +66,23 @@ class CsvLogger:
         "theta_mcp_exp",
         "theta_pip_exp",
         "theta_dip_exp",
+        # Raw in-plane segment orientations [deg] straight from the tracker
+        # (pre-differencing), logged for diagnosing non-physical joint angles:
+        # pip = phi_mid - phi_prox, dip = phi_dist - phi_mid. Blank-filled when
+        # a segment is unseen.
+        "phi_base",
+        "phi_prox",
+        "phi_mid",
+        "phi_dist",
+        # True 3D inter-segment bend [deg] = arccos(seg_i . seg_{i+1}), with NO
+        # flexion-plane assumption. Compared against theta_*_exp (planar) this
+        # isolates out-of-plane projection error: if these stay physical while the
+        # planar readings exceed the joint's limit, the plane projection is wrong.
+        # Unsigned (always >=0) and NOT zero-subtracted — read the change from the
+        # delta_L=0 baseline row, not the absolute value.
+        "theta_mcp_3d",
+        "theta_pip_3d",
+        "theta_dip_3d",
         "theta_mcp_ana",
         "theta_pip_ana",
         "theta_dip_ana",
