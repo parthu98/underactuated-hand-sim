@@ -50,6 +50,10 @@ class JointAngles:
         # ``_base`` is either None (not yet zeroed) or a dict with the captured
         # relative orientations for each joint, in degrees.
         self._base: Optional[Dict[str, float]] = None
+        # Separate zero baseline for the plane-free 3D angle path (see
+        # ``set_zero_3d`` / ``compute_3d``). ``None`` until the straight pose is
+        # captured; treated as 0 (raw bend) before then.
+        self._base_3d: Optional[Dict[str, float]] = None
 
     def set_zero(self, phi: Dict[int, Optional[float]]) -> bool:
         """Record the reference (zero) pose from marker orientations.
@@ -70,6 +74,43 @@ class JointAngles:
             "dip": wrap_deg(p3 - p2),
         }
         return True
+
+    def set_zero_3d(self, raw: Dict[str, Optional[float]]) -> bool:
+        """Record the straight-pose reference for the plane-free 3D angle path.
+
+        ``raw`` maps ``"mcp"/"pip"/"dip"`` to the signed 3D inter-segment bend
+        (degrees) from the tracker. All three must be present; otherwise the
+        baseline is left unchanged and ``False`` is returned. This is the 3D
+        analogue of :meth:`set_zero` — the captured straight-pose bends cancel
+        each segment's constant LED-mounting offset when subtracted in
+        :meth:`compute_3d`.
+        """
+        if any(raw.get(j) is None for j in ("mcp", "pip", "dip")):
+            return False
+        self._base_3d = {j: float(raw[j]) for j in ("mcp", "pip", "dip")}
+        return True
+
+    def compute_3d(self, raw: Dict[str, Optional[float]]) -> Dict[str, Optional[float]]:
+        """Zeroed, flexion-signed joint angles from signed 3D inter-segment bends.
+
+        ``raw`` is the tracker's signed 3D bend per joint (plane-free, so large
+        out-of-plane curl is not inflated the way the planar ``phi`` difference
+        is). Subtracts the straight-pose baseline (0 until :meth:`set_zero_3d`),
+        wraps into ``(-180, 180]``, and applies ``flexion_sign`` — mirroring
+        :meth:`compute` so the rest of the pipeline is unchanged.
+        """
+        base = self._base_3d if self._base_3d is not None else {
+            "mcp": 0.0, "pip": 0.0, "dip": 0.0,
+        }
+        result: Dict[str, Optional[float]] = {}
+        for name in ("mcp", "pip", "dip"):
+            v = raw.get(name)
+            if v is None:
+                result[name] = None
+                continue
+            theta = wrap_deg(float(v) - base[name])
+            result[name] = float(self.flexion_sign * theta)
+        return result
 
     def is_zeroed(self) -> bool:
         """Return ``True`` once a reference pose has been captured."""
