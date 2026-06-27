@@ -22,6 +22,7 @@ Run:
 from __future__ import annotations
 
 import argparse
+import math
 import os
 import sys
 import time
@@ -824,6 +825,62 @@ class Dashboard(QMainWindow):
         visible = {i: (len(acc[i]) >= min_seen) for i in range(4)}
         return phi_avg, visible
 
+    def _sample_joint_angles_3d(self, n=N_AVG_SAMPLES):
+        """Averaged TRUE 3D inter-segment bend per joint [deg], plane-free.
+
+        Diagnostic for the planar-projection error: the joint bend is the angle
+        between consecutive 3D segment unit vectors, ``arccos(seg_i . seg_{i+1})``,
+        which makes NO flexion-plane assumption (unlike ``phi``). Returns
+        ``{"mcp": deg|None, "pip": ..., "dip": ...}``. Requires the tracker to
+        expose ``segment_vectors`` (the PhaseSpace mocap tracker does; the ArUco
+        camera does not — then every value is None and the columns blank-fill).
+        """
+        out = {"mcp": None, "pip": None, "dip": None}
+        if not hasattr(self.cam, "segment_vectors"):
+            return out
+        acc = {"mcp": [], "pip": [], "dip": []}
+        # (joint, proximal-segment idx, distal-segment idx)
+        pairs = (("mcp", 0, 1), ("pip", 1, 2), ("dip", 2, 3))
+        for _ in range(max(1, int(n))):
+            try:
+                vecs = self.cam.segment_vectors()
+            except Exception:
+                continue
+            for name, lo, hi in pairs:
+                a, b = vecs.get(lo), vecs.get(hi)
+                if a is None or b is None:
+                    continue
+                d = float(np.clip(np.dot(a, b), -1.0, 1.0))
+                acc[name].append(math.degrees(math.acos(d)))
+        for name in out:
+            if acc[name]:
+                out[name] = float(np.mean(acc[name]))
+        return out
+
+    def _use_3d_angles(self) -> bool:
+        """True when the tracker exposes plane-free signed 3D joint angles (the
+        PhaseSpace mocap tracker does; the ArUco camera does not). When True the
+        joint readout, Set-Zero and capture use ``compute_3d`` instead of the
+        planar ``phi`` difference, which inflates out-of-plane curl."""
+        return hasattr(self.cam, "signed_joint_angles_3d")
+
+    def _sample_signed_3d_avg(self, n=N_AVG_SAMPLES):
+        """Averaged SIGNED 3D joint bend per joint [deg] for Set-Zero / capture.
+
+        Same frame-burst + wrap-safe circular mean as ``_sample_phi_avg``, but on
+        the tracker's plane-free signed bends. Returns ``{"mcp"/"pip"/"dip":
+        deg|None}`` (None if that joint was never resolvable in the burst)."""
+        acc = {"mcp": [], "pip": [], "dip": []}
+        for _ in range(max(1, int(n))):
+            try:
+                r = self.cam.signed_joint_angles_3d()
+            except Exception:
+                continue
+            for j in ("mcp", "pip", "dip"):
+                if r.get(j) is not None:
+                    acc[j].append(float(r[j]))
+        return {j: self._circular_mean_deg(acc[j]) for j in ("mcp", "pip", "dip")}
+
     def _set_zero(self):
         phi, _ = self._sample_phi_avg()
         ok = self.joints.set_zero(phi)
@@ -832,6 +889,10 @@ class Dashboard(QMainWindow):
                                 "Need all 4 markers visible to capture the "
                                 "reference pose. Check the preview.")
             return
+        # Also capture the plane-free 3D baseline so compute_3d cancels each
+        # segment's straight-pose LED-mounting offset (mocap rig only).
+        if self._use_3d_angles():
+            self.joints.set_zero_3d(self._sample_signed_3d_avg())
         if self.servo.get_state().get("connected"):
             self.servo.set_zero()
         # Capture this straight pose as the camera's alignment reference so the
@@ -877,7 +938,14 @@ class Dashboard(QMainWindow):
         # is the wrap-safe mean over N_AVG_SAMPLES detections, not one frame.
         phi_avg, vis = self._sample_phi_avg()
         all_vis = all(vis.values())
-        exp = self.joints.compute(phi_avg)
+        ang3d = self._sample_joint_angles_3d()  # raw unsigned 3D cross-check column
+        # The logged experimental angle is the plane-free signed/zeroed 3D bend on
+        # the mocap rig (the planar phi difference inflates out-of-plane curl);
+        # the ArUco rig has no 3D source and keeps the planar computation.
+        if self._use_3d_angles():
+            exp = self.joints.compute_3d(self._sample_signed_3d_avg())
+        else:
+            exp = self.joints.compute(phi_avg)
         if not all_vis or any(exp[j] is None for j in JOINTS):
             if not auto:
                 QMessageBox.warning(self, "Capture",
@@ -922,6 +990,11 @@ class Dashboard(QMainWindow):
             "delta_L_mm": self.target_mm,
             "servo_pos": st.get("pos_rev"), "servo_current": st.get("current_ma"),
             "theta_mcp_exp": exp["mcp"], "theta_pip_exp": exp["pip"], "theta_dip_exp": exp["dip"],
+            # Raw per-segment in-plane angles (pre-differencing) for diagnosis.
+            "phi_base": phi_avg.get(0), "phi_prox": phi_avg.get(1),
+            "phi_mid": phi_avg.get(2), "phi_dist": phi_avg.get(3),
+            "theta_mcp_3d": ang3d["mcp"], "theta_pip_3d": ang3d["pip"],
+            "theta_dip_3d": ang3d["dip"],
             "theta_mcp_ana": ana[0], "theta_pip_ana": ana[1], "theta_dip_ana": ana[2],
             "err_mcp": exp["mcp"] - ana[0],
             "err_pip": exp["pip"] - ana[1],
