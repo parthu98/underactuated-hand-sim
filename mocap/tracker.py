@@ -169,6 +169,33 @@ class _BaseTracker:
         return math.degrees(math.atan2(float(vpn @ self.u_perp),
                                        float(vpn @ self.u_axis)))
 
+    def signed_joint_angles_3d(self) -> Dict[str, Optional[float]]:
+        """True 3D bend at each joint, signed — the plane-free joint-angle source.
+
+        The magnitude is ``arccos(seg_i . seg_{i+1})`` between consecutive raw 3D
+        segment unit vectors, with NO projection onto the assumed flexion plane,
+        so a strongly curled (out-of-plane) distal link is not inflated the way
+        :meth:`_phi_from_vec` inflates it. The sign comes from which side of the
+        (approximate) plane normal the bend is on — ``sign((seg_i x seg_{i+1}).n)``
+        — which is robust to plane tilt (it only needs the correct hemisphere).
+
+        Returns ``{"mcp": deg|None, "pip": ..., "dip": ...}``; a joint is None if
+        either of its two bounding segments was missing this frame. Values are
+        RAW (not zeroed); ``JointAngles.compute_3d`` subtracts the straight pose.
+        """
+        vecs = self.segment_vectors()
+        out: Dict[str, Optional[float]] = {"mcp": None, "pip": None, "dip": None}
+        # (joint, proximal-segment idx, distal-segment idx)
+        for name, lo, hi in (("mcp", 0, 1), ("pip", 1, 2), ("dip", 2, 3)):
+            a, b = vecs.get(lo), vecs.get(hi)
+            if a is None or b is None:
+                continue
+            ang = math.degrees(math.acos(float(np.clip(np.dot(a, b), -1.0, 1.0))))
+            if float(np.dot(np.cross(a, b), self.n)) < 0.0:
+                ang = -ang
+            out[name] = ang
+        return out
+
     def detect(self) -> dict:
         """One frame -> {phi, visible, frame} (camera-contract compatible)."""
         vecs = self.segment_vectors()
