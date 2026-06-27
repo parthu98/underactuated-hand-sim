@@ -93,6 +93,8 @@ except ImportError:  # pragma: no cover
 ADDR_OPERATING_MODE = 11    # 1 byte; 4 = Extended Position Control
 ADDR_CURRENT_LIMIT = 38     # 2 bytes; EEPROM (write only while torque OFF)
 ADDR_TORQUE_ENABLE = 64     # 1 byte; 1 = on, 0 = off
+ADDR_PROFILE_ACCELERATION = 108  # 4 bytes; RAM; unit 214.577 rev/min^2 (0 = inf)
+ADDR_PROFILE_VELOCITY = 112      # 4 bytes; RAM; unit 0.229 rev/min  (0 = max)
 ADDR_GOAL_POSITION = 116    # 4 bytes; ticks
 ADDR_PRESENT_CURRENT = 126  # 2 bytes; signed; unit 2.69 mA
 ADDR_PRESENT_VELOCITY = 128  # 4 bytes; signed; unit 0.229 rpm
@@ -119,10 +121,36 @@ VOLTAGE_UNIT_V = 0.1
 # Overcurrent E-stop debounce: number of consecutive offending ticks.
 _OVERCURRENT_TRIP_TICKS = 3
 
+# Smooth-motion profile (Extended Position mode). These shape ONLY the path the
+# motor takes between commanded goals — never the goal itself — so the settled ΔL
+# the rig measures is unchanged; they just stop the motor from snapping to each
+# 20 Hz goal update (which is what makes the motion look jittery / discrete).
+#   * PROFILE_VELOCITY caps motor speed. Set well ABOVE any ramp speed used here
+#     (~26 mm/s of spool) so it never throttles the trajectory / changes timing.
+#   * PROFILE_ACCELERATION is the smoothing knob: it ramps the motor's velocity
+#     up and down so each goal transition eases instead of stepping. Lower =
+#     gentler (but laggier); raise it if the motor can't keep up with the ramp.
+# Both are RAM registers (writable with torque on); 0 disables profiling.
+DEFAULT_PROFILE_VELOCITY_UNITS = 100      # *0.229 rev/min ~= 22.9 rev/min ceiling
+DEFAULT_PROFILE_ACCELERATION_UNITS = 20   # *214.577 rev/min^2 (gentle ease)
+
 
 def _circumference(spool_radius_m: float) -> float:
     """Tendon length paid out per servo revolution (metres)."""
     return 2.0 * math.pi * spool_radius_m
+
+
+def _smootherstep(u: float) -> float:
+    """C2 ease-in/out on u in [0, 1]: 6u^5 - 15u^4 + 10u^3.
+
+    Maps 0->0 and 1->1 with ZERO velocity AND acceleration at both ends, so a
+    ramp built on it starts and stops jerk-free (smoother than a cosine ease).
+    """
+    if u <= 0.0:
+        return 0.0
+    if u >= 1.0:
+        return 1.0
+    return u * u * u * (u * (u * 6.0 - 15.0) + 10.0)
 
 
 # Baud rates tried during auto-detection (common Dynamixel rates, default first).
@@ -323,6 +351,8 @@ class Servo:
         current_limit_units: int = 1193,
         overcurrent_warn_ma: float = 3000.0,
         pull_sign: int = +1,
+        profile_velocity_units: int = DEFAULT_PROFILE_VELOCITY_UNITS,
+        profile_acceleration_units: int = DEFAULT_PROFILE_ACCELERATION_UNITS,
     ) -> None:
         self.port = port
         self.baud = baud
@@ -336,6 +366,9 @@ class Servo:
         )
         self.overcurrent_warn_ma = float(overcurrent_warn_ma)
         self.pull_sign = 1 if pull_sign >= 0 else -1
+        # Firmware motion-profile registers (smooth the path between goals).
+        self.profile_velocity_units = int(max(0, profile_velocity_units))
+        self.profile_acceleration_units = int(max(0, profile_acceleration_units))
 
         # SDK handles (created at connect(), or injected via attach_bus()).
         self._port_handler = None
@@ -356,10 +389,13 @@ class Servo:
         self._goal_rev = 0.0          # last commanded goal
         self._pos_rev = 0.0           # last read present position
 
-        # Ramp state.
+        # Ramp state (S-curve: eased over a duration rather than linear stepping).
         self._ramp_active = False
         self._ramp_target_delta_mm = 0.0
-        self._ramp_rate_mm_s = 0.0    # signed per-second rate toward target
+        self._ramp_start_delta_mm = 0.0   # ΔL when the ramp was armed
+        self._ramp_duration_s = 0.0       # total ramp time (distance / speed)
+        self._ramp_elapsed_s = 0.0        # time accumulated by service()
+        self._ramp_rate_mm_s = 0.0        # nominal speed (kept for reference)
 
         # Latest telemetry cache.
         self._current_ma = 0.0
@@ -510,6 +546,11 @@ class Servo:
             self._close_owned_port()
             return False, f"torque on failed ({msg})"
 
+        # Smooth-motion profile (RAM, so written with torque on). Non-fatal: a
+        # failure here only means motion may look steppier, not unsafe.
+        self.set_motion_profile(self.profile_velocity_units,
+                                self.profile_acceleration_units)
+
         self._connected = True
         self._torque_on = True
         self._estop = False
@@ -625,6 +666,29 @@ class Servo:
         """Set the pull direction (+1 or -1)."""
         self.pull_sign = 1 if sign >= 0 else -1
 
+    def set_motion_profile(self, velocity_units: int,
+                           acceleration_units: int) -> Tuple[bool, str]:
+        """Write the firmware velocity/acceleration profile (RAM registers).
+
+        In Extended Position mode the motor follows a trapezoidal profile toward
+        each goal: ``acceleration_units`` ramps its speed up/down (the smoothing
+        that stops it snapping to each 20 Hz goal), ``velocity_units`` caps the
+        speed. Units: velocity 0.229 rev/min, acceleration 214.577 rev/min².
+        ``0`` disables that limit. Stores the values and applies them now if
+        connected; otherwise they are applied at the next :meth:`connect`.
+        """
+        self.profile_velocity_units = int(max(0, velocity_units))
+        self.profile_acceleration_units = int(max(0, acceleration_units))
+        if self._packet_handler is None or self._port_handler is None:
+            return False, "no bus (values stored for next connect)"
+        ok1, msg1 = self._write4(ADDR_PROFILE_VELOCITY,
+                                 self.profile_velocity_units)
+        ok2, msg2 = self._write4(ADDR_PROFILE_ACCELERATION,
+                                 self.profile_acceleration_units)
+        if not ok1 or not ok2:
+            return False, f"profile write failed: {msg1} / {msg2}"
+        return True, "motion profile set"
+
     def rezero_at_delta(self, delta_l_mm: float) -> None:
         """Redefine ΔL=0 at the position that currently reads ``delta_l_mm``.
 
@@ -686,7 +750,11 @@ class Servo:
 
         current_delta = self.current_delta_L_mm()
         direction = 1.0 if target_delta_L_mm >= current_delta else -1.0
+        distance = abs(float(target_delta_L_mm) - current_delta)
+        self._ramp_start_delta_mm = current_delta
         self._ramp_target_delta_mm = float(target_delta_L_mm)
+        self._ramp_duration_s = distance / max(abs(speed_mm_s), 1e-6)
+        self._ramp_elapsed_s = 0.0
         self._ramp_rate_mm_s = direction * abs(speed_mm_s)
         self._ramp_active = abs(target_delta_L_mm - current_delta) > 1e-9
         return True
@@ -703,14 +771,14 @@ class Servo:
 
         # Advance the ramp (only if not estopped).
         if self._ramp_active and not self._estop:
-            current_delta = self.current_delta_L_mm()
-            remaining = self._ramp_target_delta_mm - current_delta
-            step = self._ramp_rate_mm_s * dt
-            if abs(step) >= abs(remaining):
+            self._ramp_elapsed_s += dt
+            progress = min(self._ramp_elapsed_s / max(self._ramp_duration_s, 1e-9), 1.0)
+            eased = _smootherstep(progress)
+            next_delta = self._ramp_start_delta_mm + eased * (
+                self._ramp_target_delta_mm - self._ramp_start_delta_mm)
+            if progress >= 1.0:
                 next_delta = self._ramp_target_delta_mm
                 self._ramp_active = False
-            else:
-                next_delta = current_delta + step
             # Defensive clamp into the soft range.
             next_delta = max(0.0, min(self.soft_delta_l_cap_mm, next_delta))
             self._goal_rev = self._delta_mm_to_goal_rev(next_delta)
@@ -851,6 +919,8 @@ class MockServo:
         current_limit_units: int = 1193,
         overcurrent_warn_ma: float = 3000.0,
         pull_sign: int = +1,
+        profile_velocity_units: int = DEFAULT_PROFILE_VELOCITY_UNITS,
+        profile_acceleration_units: int = DEFAULT_PROFILE_ACCELERATION_UNITS,
     ) -> None:
         self.port = port
         self.baud = baud
@@ -863,6 +933,8 @@ class MockServo:
         )
         self.overcurrent_warn_ma = float(overcurrent_warn_ma)
         self.pull_sign = 1 if pull_sign >= 0 else -1
+        self.profile_velocity_units = int(max(0, profile_velocity_units))
+        self.profile_acceleration_units = int(max(0, profile_acceleration_units))
 
         self._connected = False
         self._torque_on = False
@@ -876,6 +948,9 @@ class MockServo:
 
         self._ramp_active = False
         self._ramp_target_delta_mm = 0.0
+        self._ramp_start_delta_mm = 0.0
+        self._ramp_duration_s = 0.0
+        self._ramp_elapsed_s = 0.0
         self._ramp_rate_mm_s = 0.0
 
         # Simulated telemetry.
@@ -961,6 +1036,13 @@ class MockServo:
     def set_pull_direction(self, sign: int) -> None:
         self.pull_sign = 1 if sign >= 0 else -1
 
+    def set_motion_profile(self, velocity_units: int,
+                           acceleration_units: int) -> Tuple[bool, str]:
+        """Store the profile (no hardware to write); mirrors Servo's interface."""
+        self.profile_velocity_units = int(max(0, velocity_units))
+        self.profile_acceleration_units = int(max(0, acceleration_units))
+        return True, "mock motion profile set"
+
     def rezero_at_delta(self, delta_l_mm: float) -> None:
         self._zero_rev = self._delta_mm_to_goal_rev(delta_l_mm)
         self._ramp_active = False
@@ -996,7 +1078,11 @@ class MockServo:
             return False
         current_delta = self.current_delta_L_mm()
         direction = 1.0 if target_delta_L_mm >= current_delta else -1.0
+        distance = abs(float(target_delta_L_mm) - current_delta)
+        self._ramp_start_delta_mm = current_delta
         self._ramp_target_delta_mm = float(target_delta_L_mm)
+        self._ramp_duration_s = distance / max(abs(speed_mm_s), 1e-6)
+        self._ramp_elapsed_s = 0.0
         self._ramp_rate_mm_s = direction * abs(speed_mm_s)
         self._ramp_active = abs(target_delta_L_mm - current_delta) > 1e-9
         return True
@@ -1008,14 +1094,14 @@ class MockServo:
         prev_delta = self.current_delta_L_mm()
 
         if self._ramp_active and not self._estop:
-            current_delta = prev_delta
-            remaining = self._ramp_target_delta_mm - current_delta
-            step = self._ramp_rate_mm_s * dt
-            if abs(step) >= abs(remaining):
+            self._ramp_elapsed_s += dt
+            progress = min(self._ramp_elapsed_s / max(self._ramp_duration_s, 1e-9), 1.0)
+            eased = _smootherstep(progress)
+            next_delta = self._ramp_start_delta_mm + eased * (
+                self._ramp_target_delta_mm - self._ramp_start_delta_mm)
+            if progress >= 1.0:
                 next_delta = self._ramp_target_delta_mm
                 self._ramp_active = False
-            else:
-                next_delta = current_delta + step
             next_delta = max(0.0, min(self.soft_delta_l_cap_mm, next_delta))
             self._goal_rev = self._delta_mm_to_goal_rev(next_delta)
         elif self._estop:
