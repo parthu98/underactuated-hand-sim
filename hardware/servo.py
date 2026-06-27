@@ -200,17 +200,7 @@ def autodetect_servo(
     for port in ports:
         port_handler = PortHandler(port)
         packet_handler = PacketHandler(protocol)
-        # serial.tools.list_ports.comports() (used by the dashboards' x-platform
-        # enumerator) surfaces phantom/legacy nodes — e.g. the onboard /dev/ttyS*
-        # ports on Linux — whose openPort() RAISES a low-level OS error instead of
-        # returning False. Skip any port we can't open so one bad node doesn't
-        # abort the whole scan (mirrors autodetect_loadcell). SerialException is an
-        # OSError subclass, so this also covers pyserial's own failures.
-        try:
-            opened = port_handler.openPort()
-        except OSError:
-            continue
-        if not opened:
+        if not port_handler.openPort():
             continue
         try:
             for baud in bauds:
@@ -689,25 +679,6 @@ class Servo:
             return False, f"profile write failed: {msg1} / {msg2}"
         return True, "motion profile set"
 
-    def rezero_at_delta(self, delta_l_mm: float) -> None:
-        """Redefine ΔL=0 at the position that currently reads ``delta_l_mm``.
-
-        Used by auto-tensioning to place the zero reference at the extrapolated
-        motion threshold (the "knee"), which sits *behind* the present position
-        after a probe — so we move the reference, not the motor. The motor stays
-        put; afterwards :meth:`current_delta_L_mm` reads the (positive) overshoot
-        past the knee, and a ``start_ramp(0)`` returns the finger to the knee.
-        """
-        # _delta_mm_to_goal_rev maps the target ΔL to an absolute rev under the
-        # CURRENT zero; adopting that rev as the new zero makes that position read 0.
-        self._zero_rev = self._delta_mm_to_goal_rev(delta_l_mm)
-        self._ramp_active = False
-        self._ramp_target_delta_mm = 0.0
-
-    def present_delta_L_mm(self) -> float:
-        """ΔL (mm) of the present *measured* position (vs the commanded goal)."""
-        return self._goal_rev_to_delta_mm(self._pos_rev)
-
     # -- motion: jog ------------------------------------------------------
     def jog(self, direction: int, step_rev: float = 0.02) -> Tuple[bool, str]:
         """Nudge the goal by ``step_rev`` revolutions in ``direction`` (+1/-1).
@@ -1042,14 +1013,6 @@ class MockServo:
         self.profile_velocity_units = int(max(0, velocity_units))
         self.profile_acceleration_units = int(max(0, acceleration_units))
         return True, "mock motion profile set"
-
-    def rezero_at_delta(self, delta_l_mm: float) -> None:
-        self._zero_rev = self._delta_mm_to_goal_rev(delta_l_mm)
-        self._ramp_active = False
-        self._ramp_target_delta_mm = 0.0
-
-    def present_delta_L_mm(self) -> float:
-        return self._goal_rev_to_delta_mm(self._pos_rev)
 
     # -- motion -----------------------------------------------------------
     def jog(self, direction: int, step_rev: float = 0.02) -> Tuple[bool, str]:
