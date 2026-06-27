@@ -1,0 +1,1 @@
+timestamp,trial_idx,event,state,force_n,force_raw_n,peak_n,capacity_n,grip_target_mm,finger_a_dL_mm,finger_b_dL_mm,finger_a_current_ma,finger_b_current_ma,pull_dL_mm,pull_current_ma,k_mcp,k_pip,k_dip
