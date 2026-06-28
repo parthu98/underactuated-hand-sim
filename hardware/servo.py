@@ -278,6 +278,46 @@ def open_bus(
             f"bus open on {found_port} @ {found_baud} baud, ids {ids}")
 
 
+def install_emergency_shutdown(cleanup):
+    """Run ``cleanup`` on *any* process exit, not just a clicked window close.
+
+    Qt only calls a window's ``closeEvent`` when the GUI is closed normally
+    (the ✕ button). If the operator Ctrl-C's the terminal, or the process is
+    sent SIGTERM, ``closeEvent`` never fires and the Dynamixels stay energised
+    holding their last position. This wires the same ``cleanup`` (torque-off +
+    disconnect) into:
+
+      * :mod:`atexit` — runs on every normal interpreter shutdown, including
+        after the Qt loop ends or after a KeyboardInterrupt unwinds; and
+      * the SIGINT / SIGTERM handlers — so a terminal Ctrl-C or a ``kill``
+        de-energises the motors before the process dies.
+
+    ``cleanup`` MUST be idempotent (guard it with a "already done" flag): it can
+    be invoked from both a signal and atexit, and from ``closeEvent`` too. The
+    dashboards run a periodic QTimer, which returns control to Python often
+    enough that the Python signal handler actually fires while Qt's C++ event
+    loop is running. Signal handlers can only be installed from the main thread;
+    failures there are ignored (atexit still covers the exit).
+    """
+    import atexit
+    import signal
+
+    atexit.register(cleanup)
+
+    def _handler(signum, _frame):
+        cleanup()
+        # Restore the default disposition and re-raise so the process exits the
+        # way it normally would for this signal (Qt loop tears down, etc.).
+        signal.signal(signum, signal.SIG_DFL)
+        os.kill(os.getpid(), signum)
+
+    for _sig in (signal.SIGINT, signal.SIGTERM):
+        try:
+            signal.signal(_sig, _handler)
+        except (ValueError, OSError):  # not main thread / unsupported platform
+            pass
+
+
 class SoftLimitError(ValueError):
     """Raised when a commanded ΔL would exceed the soft cap or go negative."""
 
@@ -631,13 +671,13 @@ class Servo:
         self.profile_acceleration_units = int(max(0, acceleration_units))
         if self._packet_handler is None or self._port_handler is None:
             return False, "no bus (values stored for next connect)"
-        ok_a, msg_a = self._write4(ADDR_PROFILE_ACCELERATION,
-                                   self.profile_acceleration_units)
-        ok_v, msg_v = self._write4(ADDR_PROFILE_VELOCITY,
-                                   self.profile_velocity_units)
-        if ok_a and ok_v:
-            return True, "motion profile set"
-        return False, f"profile write: accel({msg_a}) vel({msg_v})"
+        ok1, msg1 = self._write4(ADDR_PROFILE_VELOCITY,
+                                 self.profile_velocity_units)
+        ok2, msg2 = self._write4(ADDR_PROFILE_ACCELERATION,
+                                 self.profile_acceleration_units)
+        if not ok1 or not ok2:
+            return False, f"profile write failed: {msg1} / {msg2}"
+        return True, "motion profile set"
 
     # -- motion: jog ------------------------------------------------------
     def jog(self, direction: int, step_rev: float = 0.02) -> Tuple[bool, str]:
@@ -680,22 +720,21 @@ class Servo:
             return False
 
         current_delta = self.current_delta_L_mm()
+        direction = 1.0 if target_delta_L_mm >= current_delta else -1.0
         distance = abs(float(target_delta_L_mm) - current_delta)
         self._ramp_start_delta_mm = current_delta
         self._ramp_target_delta_mm = float(target_delta_L_mm)
-        # Same total travel time as the old linear ramp (distance / speed); the
-        # S-curve redistributes that time so velocity eases in and out.
         self._ramp_duration_s = distance / max(abs(speed_mm_s), 1e-6)
         self._ramp_elapsed_s = 0.0
-        self._ramp_rate_mm_s = (1.0 if target_delta_L_mm >= current_delta else -1.0) * abs(speed_mm_s)
-        self._ramp_active = distance > 1e-9
+        self._ramp_rate_mm_s = direction * abs(speed_mm_s)
+        self._ramp_active = abs(target_delta_L_mm - current_delta) > 1e-9
         return True
 
     def service(self, dt: float = 0.05) -> dict:
         """Advance an active ramp and refresh telemetry. Call periodically.
 
-        Eases the goal from the ramp's start ΔL to its target along a smootherstep
-        S-curve (jerk-free at both ends), sends the goal, then reads telemetry and
+        Steps the active ramp's goal toward the target by ``rate*dt``
+        (mm -> rev via the spool), sends the goal, then reads telemetry and
         enforces the overcurrent E-stop. Returns :meth:`get_state`.
         """
         if not self._connected:
@@ -704,13 +743,13 @@ class Servo:
         # Advance the ramp (only if not estopped).
         if self._ramp_active and not self._estop:
             self._ramp_elapsed_s += dt
-            if self._ramp_duration_s <= 1e-9 or self._ramp_elapsed_s >= self._ramp_duration_s:
+            progress = min(self._ramp_elapsed_s / max(self._ramp_duration_s, 1e-9), 1.0)
+            eased = _smootherstep(progress)
+            next_delta = self._ramp_start_delta_mm + eased * (
+                self._ramp_target_delta_mm - self._ramp_start_delta_mm)
+            if progress >= 1.0:
                 next_delta = self._ramp_target_delta_mm
                 self._ramp_active = False
-            else:
-                s = _smootherstep(self._ramp_elapsed_s / self._ramp_duration_s)
-                next_delta = (self._ramp_start_delta_mm
-                              + (self._ramp_target_delta_mm - self._ramp_start_delta_mm) * s)
             # Defensive clamp into the soft range.
             next_delta = max(0.0, min(self.soft_delta_l_cap_mm, next_delta))
             self._goal_rev = self._delta_mm_to_goal_rev(next_delta)
@@ -1001,13 +1040,14 @@ class MockServo:
         except SoftLimitError:
             return False
         current_delta = self.current_delta_L_mm()
+        direction = 1.0 if target_delta_L_mm >= current_delta else -1.0
         distance = abs(float(target_delta_L_mm) - current_delta)
         self._ramp_start_delta_mm = current_delta
         self._ramp_target_delta_mm = float(target_delta_L_mm)
         self._ramp_duration_s = distance / max(abs(speed_mm_s), 1e-6)
         self._ramp_elapsed_s = 0.0
-        self._ramp_rate_mm_s = (1.0 if target_delta_L_mm >= current_delta else -1.0) * abs(speed_mm_s)
-        self._ramp_active = distance > 1e-9
+        self._ramp_rate_mm_s = direction * abs(speed_mm_s)
+        self._ramp_active = abs(target_delta_L_mm - current_delta) > 1e-9
         return True
 
     def service(self, dt: float = 0.05) -> dict:
@@ -1018,13 +1058,13 @@ class MockServo:
 
         if self._ramp_active and not self._estop:
             self._ramp_elapsed_s += dt
-            if self._ramp_duration_s <= 1e-9 or self._ramp_elapsed_s >= self._ramp_duration_s:
+            progress = min(self._ramp_elapsed_s / max(self._ramp_duration_s, 1e-9), 1.0)
+            eased = _smootherstep(progress)
+            next_delta = self._ramp_start_delta_mm + eased * (
+                self._ramp_target_delta_mm - self._ramp_start_delta_mm)
+            if progress >= 1.0:
                 next_delta = self._ramp_target_delta_mm
                 self._ramp_active = False
-            else:
-                s = _smootherstep(self._ramp_elapsed_s / self._ramp_duration_s)
-                next_delta = (self._ramp_start_delta_mm
-                              + (self._ramp_target_delta_mm - self._ramp_start_delta_mm) * s)
             next_delta = max(0.0, min(self.soft_delta_l_cap_mm, next_delta))
             self._goal_rev = self._delta_mm_to_goal_rev(next_delta)
         elif self._estop:
