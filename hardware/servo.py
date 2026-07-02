@@ -200,11 +200,25 @@ def autodetect_servo(
     for port in ports:
         port_handler = PortHandler(port)
         packet_handler = PacketHandler(protocol)
-        if not port_handler.openPort():
+        try:
+            if not port_handler.openPort():
+                continue
+        except Exception:
+            # pyserial can raise (e.g. PermissionError on Windows) instead of
+            # returning False -- most often a transient COM-port release race
+            # right after a previous close, occasionally a port genuinely held
+            # by another process. Either way, skip this port, don't abort scan.
             continue
         try:
             for baud in bauds:
-                if not port_handler.setBaudRate(baud):
+                try:
+                    if not port_handler.setBaudRate(baud):
+                        continue
+                except Exception:
+                    # Same pyserial-raises-instead-of-False issue, but between
+                    # baud attempts on an already-open port (setBaudRate closes
+                    # + reopens the port each time). Skip this baud, try the
+                    # next one rather than crashing the whole scan.
                     continue
                 data_list, _comm = packet_handler.broadcastPing(port_handler)
                 if data_list:
@@ -215,7 +229,10 @@ def autodetect_servo(
                     return (True, port, baud, found_id,
                             f"found Dynamixel id {found_id} on {port} @ {baud} baud")
         finally:
-            port_handler.closePort()
+            try:
+                port_handler.closePort()
+            except Exception:
+                pass
 
     return (False, None, None, None,
             "No Dynamixel responded on any port/baud. Check 12 V power, the "

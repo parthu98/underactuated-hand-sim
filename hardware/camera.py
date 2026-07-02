@@ -238,31 +238,47 @@ class RealSenseAruco:
                 "USB cable/power and that no other process is holding the camera."
             )
 
-        # Open the color-only pipeline.
-        try:
-            pipeline = rs.pipeline()
+        # Open the color-only pipeline. The requested (width, height, fps) may
+        # exceed what the USB link can carry — a D435/D435i on USB2 (vs. USB3)
+        # caps 1280x720 at 15 fps, not 30 — and the SDK's only signal for that
+        # is a generic "Couldn't resolve requests" RuntimeError. Rather than
+        # hard-failing on one combo, try the requested profile first, then fall
+        # back through known-good ones (highest quality that still fits USB2)
+        # until one actually starts. self.width/height/fps are updated to
+        # whichever profile won, so downstream framing stays consistent.
+        candidates = list(dict.fromkeys([
+            (self.width, self.height, self.fps),
+            (1280, 720, 15), (1280, 720, 10), (1280, 720, 6),
+            (640, 480, 30), (640, 480, 15),
+            (424, 240, 30),
+        ]))
+        pipeline = rs.pipeline()
+        last_exc: Optional[Exception] = None
+        for w, h, fps in candidates:
             config = rs.config()
             # Pin a specific device only if a serial was requested; otherwise
             # the SDK binds the first available device on any port.
             if self.serial:
                 config.enable_device(self.serial)
-            config.enable_stream(
-                rs.stream.color,
-                self.width,
-                self.height,
-                rs.format.bgr8,
-                self.fps,
-            )
-            self._profile = pipeline.start(config)
-            self._pipeline = pipeline
-        except Exception as exc:  # device missing / busy / bad config
+            config.enable_stream(rs.stream.color, w, h, rs.format.bgr8, fps)
+            try:
+                self._profile = pipeline.start(config)
+                self._pipeline = pipeline
+                self.width, self.height, self.fps = w, h, fps
+                last_exc = None
+                break
+            except Exception as exc:  # noqa: BLE001 - profile not supported, try next
+                last_exc = exc
+                continue
+        if last_exc is not None:
             self._pipeline = None
             self._profile = None
+            tried = ", ".join(f"{w}x{h}@{fps}" for w, h, fps in candidates)
             raise RuntimeError(
-                "Failed to start RealSense color stream "
-                f"({self.width}x{self.height}@{self.fps}). Is a device "
-                f"connected and free? Underlying error: {exc!r}"
-            ) from exc
+                "Failed to start RealSense color stream. Tried: "
+                f"{tried}. Is a device connected and free? "
+                f"Underlying error: {last_exc!r}"
+            ) from last_exc
 
         self._started = True
 
