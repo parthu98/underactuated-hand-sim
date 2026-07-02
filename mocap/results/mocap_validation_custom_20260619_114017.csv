@@ -1,0 +1,2 @@
+timestamp,spring_set_label,rho1,rho3,k_mcp,k_pip,k_dip,delta_L_mm,servo_pos,servo_current,theta_mcp_exp,theta_pip_exp,theta_dip_exp,theta_mcp_ana,theta_pip_ana,theta_dip_ana,err_mcp,err_pip,err_dip,M12_exp,M32_exp,M12_ana,M32_ana,markers_all_visible,settle_time_s,trial_idx
+2026-06-19T11:40:17,custom,1.0,1.0,0.17,0.17,0.17,0.0,-0.566895,-260.93,87.164,62.600134,88.11884,0.0,0.0,0.0,87.164,62.600134,88.11884,1.392393,1.407646,nan,nan,True,nan,0
