@@ -1,9 +1,10 @@
 # Project Context — Shared Across All AI Agents
 
 > **Canonical instructions file.** Claude, Gemini, Codex, Copilot, and any future
-> AI tool all read THIS file. Tool-specific files (`CLAUDE.md`, `CODEX.md`) exist
-> only for their own protocol mechanics (MCP, context layering) and contain ZERO
-> project context. **Edit shared rules HERE — never in the per-tool files.**
+> AI tool all read THIS file. The per-tool files (`CLAUDE.md`, `CODEX.md`,
+> `GEMINI.md`, `.github/copilot-instructions.md`) exist only for their own protocol
+> mechanics (MCP, context layering) and contain ZERO project context.
+> **Edit shared rules HERE — never in the per-tool files.**
 
 This project contains MuJoCo simulations for a tendon-driven underactuated finger:
 an anthropomorphic 3-joint (MCP / PIP / DIP) model, plus a hardware-validation rig.
@@ -46,6 +47,9 @@ an anthropomorphic 3-joint (MCP / PIP / DIP) model, plus a hardware-validation r
   and (b) `--combos` mode → the 3 hardware spring sets as a Tmax bar chart
   (`load_test_combos_Tmax.png`). All geometry/friction/servo numbers come from
   `config.py` (`LOAD_TEST_*`, `FRICTION_MU_*`), so the sim tracks the real fixture.
+- **Plain gripper viewer:** `gripper/build_gripper.py` builds `gripper.xml` (two
+  fingers, git-ignored artifact) and `gripper/interactive_gripper.py` opens its Tk
+  control panel — the non-load-test gripper (see `gripper/README.md`).
 - **Capstan load test:** `gripper/capstan/capstan_load_test.py` — self-contained
   load-test variant that wraps the tendon around a capstan spool for mechanical
   advantage. Includes a mu-sweep and stiffness-combo results pipeline.
@@ -64,8 +68,6 @@ an anthropomorphic 3-joint (MCP / PIP / DIP) model, plus a hardware-validation r
   `Dashboard`, reusing servo/logger/predictor/joints/auto-sweep verbatim),
   `calibrate.py`, and `mocap_config.py` (mocap-only knobs; physical params still
   come from root `config.py`). Results write to `mocap/results/`.
-- **Archived mocap prototypes:** `motion capture test files/` — standalone test scripts
-  predating the integrated `mocap/` directory. Not actively used; kept for reference.
 
 When finger geometry or mechanics change, update **both** the high-fidelity model
 **and** the analytical validation so they stay consistent.
@@ -180,9 +182,10 @@ Memory is split into two layers. Use both.
    This is the fallback any tool can read even without the MCP. Read it FIRST.
 
 > Tool-specific retrieval mechanics (dual-graph `graph_continue`, confidence caps,
-> context layering) live in `CLAUDE.md` / `CODEX.md`. Those files contain NO
-> project context — they exist only for protocol handshakes. All project knowledge
-> comes from this file, `config.py`, and `CONTEXT.md`.
+> context layering) are summarized in each per-tool file and reproduced in full in
+> the Dual-Graph Context Policy below. Those tool files contain NO project context —
+> they exist only for protocol handshakes. All project knowledge comes from this
+> file, `config.py`, and `CONTEXT.md`.
 
 <!-- dgc-policy-v11 -->
 # Dual-Graph Context Policy
