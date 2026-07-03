@@ -38,44 +38,62 @@ MOCAP_SLAVE = True
 # (0=base, 1=prox, 2=mid, 3=dist), so the existing MCP/PIP/DIP differencing and
 # zeroing work unchanged.
 #
-# As-built LED placement (CORRECTED): the finger is mounted end-for-end relative
-# to the first guess — the (0,2) pair is the FINGERTIP, not the base. The real
-# order runs base->tip from marker 6 down to marker 0, so the whole chain is
-# reversed AND each pair's near/far flips (the LED that pointed toward the old
-# "tip" actually points toward the real palm). near = nearer the palm, far =
-# nearer the fingertip; far - near points distally.
-#   base / palm        : near=6, far=4
-#   MCP / proximal link: near=3, far=5
-#   PIP / middle link  : near=7, far=1
-#   DIP / distal link  : near=2, far=0   (the (0,2) pair we first called "base")
+# As-built LED placement (2026-07-03 remount, ids 8-15): near = nearer the
+# palm, far = nearer the fingertip; far - near points distally.
+#   base / palm        : near=15, far=14
+#   MCP / proximal link: near=13, far=12
+#   PIP / middle link  : near=11, far=10
+#   DIP / distal link  : near=9,  far=8
 MOCAP_SEGMENT_MARKER_IDS = (
-    (7 ,6),   # base / palm
-    (5, 4),   # proximal phalanx  (MCP link)
-    (3, 2),   # middle phalanx    (PIP link)
-    (1, 0),   # distal phalanx    (DIP link)
+    (38, 39),   # base / palm
+    (36, 37),   # proximal phalanx  (MCP link)
+    (34, 35),   # middle phalanx    (PIP link)
+    (32, 33),     # distal phalanx    (DIP link)
 )
 
 SEGMENT_LABELS = ("base", "prox", "mid", "dist")
 
 # --- flexion-plane definition -----------------------------------------------
-# The finger flexes in a FIXED plane (no abduction), so the flexion plane is the
-# horizontal plane and its normal is simply the lab VERTICAL axis. We define the
-# plane from that known normal — no calibration flex, no extra marker needed. The
-# projection then strips every bit of out-of-plane marker tilt/rotation, and the
-# straight-pose Set Zero cancels the residual constant in-plane offsets.
+# The finger flexes in a FIXED plane (no abduction). "MOCAP_VERTICAL_AXIS" is a
+# misnomer left over from the original rig mount, where that plane happened to be
+# the horizontal ground plane (normal = the lab's up axis, Y) -- it really means
+# "the axis NORMAL to the flexion plane", whatever that plane is on THIS mount.
 #
-# Only the NORMAL affects joint angles (they are differences of consecutive
-# segment angles, which are invariant to the in-plane long-axis reference). So
-# the single thing to get right is which axis points up.
+# 2026-07-03: on the current mount the finger curls in the vertical X-Y plane
+# (confirmed live in PhaseSpace Master Client), not the horizontal plane, so the
+# normal is Z, not Y. Using Y here (the old default) meant every joint-angle
+# calculation was projecting against the wrong axis -- the real curling motion
+# looked like constant out-of-plane drift that got worse at deep flexion, which
+# is what caused the DIP sign to glitch (see signed_joint_angles_3d in tracker.py)
+# even after that method's own sign-degeneracy guard was added; that guard is a
+# safety net, this axis is the actual fix.
 #
-# CHECK THIS LIVE: lift a marker off the table and watch which coordinate grows.
-MOCAP_VERTICAL_AXIS = 1      # which PhaseSpace axis is UP: 0=X, 1=Y, 2=Z
-MOCAP_VERTICAL_SIGN = +1     # +1 if that axis points up, -1 if it points down
+# We define the plane from the known normal — no calibration flex, no extra
+# marker needed. The projection then strips every bit of out-of-plane marker
+# tilt/rotation, and the straight-pose Set Zero cancels the residual constant
+# in-plane offsets. Only the NORMAL affects joint angles (they are differences of
+# consecutive segment angles, which are invariant to the in-plane long-axis
+# reference). So the single thing to get right is which axis is normal to the
+# plane the finger actually moves in.
+#
+# CHECK THIS LIVE: move a marker straight out of the plane the finger curls in
+# and watch which raw coordinate changes.
+MOCAP_VERTICAL_AXIS = 2      # axis NORMAL to the flexion plane: 0=X, 1=Y, 2=Z
+# +1/-1 -- flip if flexion reads backwards after re-zeroing (try this before
+# touching MOCAP_FLEXION_SIGN, which is a separate, coarser sign flip).
+MOCAP_VERTICAL_SIGN = +1
 
-# Sign of the joint angles. Flexion (servo pull) should read POSITIVE; with the
-# as-built marker direction the pull comes out negative, so default to -1 to flip
-# it (the dashboard's "FLIP θ SIGN" button toggles this live).
-MOCAP_FLEXION_SIGN = -1      # +1 or -1
+# Sign of the joint angles. Flexion (servo pull) should read POSITIVE.
+#
+# 2026-07-03: after remounting the LEDs on the new marker ids (see
+# MOCAP_SEGMENT_MARKER_IDS above), the mocap_validation_uniform_medium sweep
+# showed flexion reading NEGATIVE (theta_mcp_exp went -2 -> -24 deg while the
+# plane-free theta_mcp_3d for the same frames went +16 -> +38 deg — same pull,
+# opposite sign; PIP/DIP cross the same way once flex is large enough). That
+# means the finger curls opposite to what this sign used to produce, so it
+# flips to +1. If a future remount reverses it again, use the dashboard's
+# "FLIP θ SIGN" button to check live, then update this default to match.
+MOCAP_FLEXION_SIGN = +1      # +1 or -1
 
 # --- servo ΔL travel --------------------------------------------------------
 # Manual/GO/jog tendon-pull ceiling [mm]. The hardware dashboard hard-caps the
