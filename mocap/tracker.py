@@ -72,18 +72,28 @@ class _BaseTracker:
     """Shared geometry + camera-contract logic; subclasses supply marker data."""
 
     def __init__(self, segment_marker_ids, calib_path: Optional[str] = None,
-                 vertical_axis: int = 2, vertical_sign: float = 1.0):
+                 vertical_axis: int = 2, vertical_sign: float = 1.0,
+                 flexion_sign: int = +1):
         self.segment_marker_ids: Tuple[Tuple[int, int], ...] = tuple(
             (int(a), int(b)) for a, b in segment_marker_ids)
         if len(self.segment_marker_ids) != _NSEG:
             raise ValueError(f"need {_NSEG} (near,far) segment id pairs, "
                              f"got {len(self.segment_marker_ids)}")
         self.calib_path = calib_path
+        # Mirrors the stick-figure PREVIEW only (drawing uses raw absolute
+        # segment orientation, not joint angles) so it visually curls the same
+        # way MOCAP_FLEXION_SIGN makes the logged/plotted angles read. Does not
+        # touch detect()/phi -- JointAngles.compute() applies the real sign.
+        self.flexion_sign = 1 if int(flexion_sign) >= 0 else -1
 
         self._started = False
         self.show_reference = True
         self.render_enabled = True   # dashboard turns this off (draws its own pose)
         self._align_ref: Optional[Dict[int, Optional[float]]] = None
+
+        # Sticky sign memory for signed_joint_angles_3d(), keyed by joint name.
+        # See that method for why this is needed.
+        self._last_bend_sign: Dict[str, int] = {"mcp": 1, "pip": 1, "dip": 1}
 
         # Flexion-plane basis. The finger flexes in a FIXED horizontal plane (no
         # abduction), so the plane normal is the known lab vertical axis — no
@@ -169,6 +179,13 @@ class _BaseTracker:
         return math.degrees(math.atan2(float(vpn @ self.u_perp),
                                        float(vpn @ self.u_axis)))
 
+    # A segment's own elevation out of the flexion plane, below which its
+    # in-plane heading is too poorly determined to trust for the sign test
+    # (see the docstring below). |a_in| = sin(elevation-from-plane), so this
+    # is sin(20 deg) -- segments tilted more than ~20 deg off the horizontal
+    # flexion plane no longer get to vote on the sign this frame.
+    _MIN_INPLANE_MAG = 0.342
+
     def signed_joint_angles_3d(self) -> Dict[str, Optional[float]]:
         """True 3D bend at each joint, signed — the plane-free joint-angle source.
 
@@ -176,8 +193,25 @@ class _BaseTracker:
         segment unit vectors, with NO projection onto the assumed flexion plane,
         so a strongly curled (out-of-plane) distal link is not inflated the way
         :meth:`_phi_from_vec` inflates it. The sign comes from which side of the
-        (approximate) plane normal the bend is on — ``sign((seg_i x seg_{i+1}).n)``
-        — which is robust to plane tilt (it only needs the correct hemisphere).
+        (approximate) plane normal the bend is on: ``sign((seg_i x seg_{i+1}).n)``.
+
+        That sign test is a scalar triple product, ``det[seg_i, seg_{i+1}, n]``,
+        which is numerically IDENTICAL whether or not seg_i/seg_{i+1} are first
+        projected onto the flexion plane (adding any multiple of ``n`` to either
+        vector leaves a triple product with ``n`` unchanged) -- so projecting the
+        vectors first does NOT stabilize it. What actually makes the sign fragile
+        is a strongly-curled distal link picking up real out-of-plane droop: once
+        a segment's own direction tips far enough toward ``n``, its IN-PLANE
+        heading (which is what the cross product's sign really measures) becomes
+        poorly determined and dominated by noise, even though ``acos(dot)`` (which
+        mixes in the out-of-plane component too) still reports a large, plausible-
+        looking magnitude -- e.g. DIP jumping from +58 deg to -75 deg between
+        adjacent samples of the same sweep with the magnitude roughly preserved.
+        So each frame we check both segments' in-plane magnitude
+        (``|seg - (seg.n)n|``, i.e. ``sin`` of that segment's elevation off the
+        flexion plane); if either has tipped past ``_MIN_INPLANE_MAG`` the new
+        sign is untrustworthy and this method keeps the PREVIOUS frame's sign for
+        that joint instead.
 
         Returns ``{"mcp": deg|None, "pip": ..., "dip": ...}``; a joint is None if
         either of its two bounding segments was missing this frame. Values are
@@ -191,9 +225,17 @@ class _BaseTracker:
             if a is None or b is None:
                 continue
             ang = math.degrees(math.acos(float(np.clip(np.dot(a, b), -1.0, 1.0))))
-            if float(np.dot(np.cross(a, b), self.n)) < 0.0:
-                ang = -ang
-            out[name] = ang
+            cr = float(np.dot(np.cross(a, b), self.n))
+            a_inplane_mag = float(np.linalg.norm(a - float(np.dot(a, self.n)) * self.n))
+            b_inplane_mag = float(np.linalg.norm(b - float(np.dot(b, self.n)) * self.n))
+            trustworthy = (a_inplane_mag >= self._MIN_INPLANE_MAG
+                           and b_inplane_mag >= self._MIN_INPLANE_MAG)
+            if trustworthy:
+                sign = 1 if cr >= 0.0 else -1
+                self._last_bend_sign[name] = sign
+            else:
+                sign = self._last_bend_sign[name]
+            out[name] = sign * ang
         return out
 
     def detect(self) -> dict:
@@ -249,7 +291,9 @@ class _BaseTracker:
                 # unseen segment: short stub so the gap is visible
                 nxt = p + np.array([seg_len * 0.4, 0.0])
             else:
-                rad = math.radians(a)
+                # flexion_sign mirrors rotational sense (CW <-> CCW) so the
+                # preview curls the same way the logged angles read.
+                rad = math.radians(self.flexion_sign * a)
                 # +x right, +y down in image space; draw along (cos, -sin)
                 nxt = p + seg_len * np.array([math.cos(rad), -math.sin(rad)])
             cv2.line(img, (int(p[0]), int(p[1])), (int(nxt[0]), int(nxt[1])),
@@ -274,9 +318,11 @@ class PhaseSpaceTracker(_BaseTracker):
     def __init__(self, server: str, segment_marker_ids,
                  calib_path: Optional[str] = None,
                  timeout_us: int = 1_000_000, slave: bool = True,
-                 vertical_axis: int = 2, vertical_sign: float = 1.0):
+                 vertical_axis: int = 2, vertical_sign: float = 1.0,
+                 flexion_sign: int = +1):
         super().__init__(segment_marker_ids, calib_path,
-                         vertical_axis=vertical_axis, vertical_sign=vertical_sign)
+                         vertical_axis=vertical_axis, vertical_sign=vertical_sign,
+                         flexion_sign=flexion_sign)
         self.server = server
         self.timeout_us = int(timeout_us)
         self.slave = bool(slave)
@@ -349,9 +395,11 @@ class MockTracker(_BaseTracker):
 
     def __init__(self, segment_marker_ids, calib_path: Optional[str] = None,
                  link_len: float = 50.0,
-                 vertical_axis: int = 2, vertical_sign: float = 1.0):
+                 vertical_axis: int = 2, vertical_sign: float = 1.0,
+                 flexion_sign: int = +1):
         super().__init__(segment_marker_ids, calib_path,
-                         vertical_axis=vertical_axis, vertical_sign=vertical_sign)
+                         vertical_axis=vertical_axis, vertical_sign=vertical_sign,
+                         flexion_sign=flexion_sign)
         self.link_len = float(link_len)
         self._t0 = time.monotonic()
 
@@ -387,11 +435,14 @@ class MockTracker(_BaseTracker):
 
 def build_tracker(mock: bool = False, *, server=None, segment_marker_ids=None,
                   calib_path=None, timeout_us=1_000_000, slave=True,
-                  vertical_axis: int = 2, vertical_sign: float = 1.0):
+                  vertical_axis: int = 2, vertical_sign: float = 1.0,
+                  flexion_sign: int = +1):
     """Factory used by the dashboard / CLI."""
     if mock:
         return MockTracker(segment_marker_ids, calib_path=calib_path,
-                           vertical_axis=vertical_axis, vertical_sign=vertical_sign)
+                           vertical_axis=vertical_axis, vertical_sign=vertical_sign,
+                           flexion_sign=flexion_sign)
     return PhaseSpaceTracker(server, segment_marker_ids, calib_path=calib_path,
                              timeout_us=timeout_us, slave=slave,
-                             vertical_axis=vertical_axis, vertical_sign=vertical_sign)
+                             vertical_axis=vertical_axis, vertical_sign=vertical_sign,
+                             flexion_sign=flexion_sign)
