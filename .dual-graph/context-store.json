@@ -1,0 +1,3900 @@
+[
+  {
+    "type": "decision",
+    "content": "Split squashed Windows commit 7c78686 into 7 per-feature commits on windows-mocap branch, merged into main, force-pushed.",
+    "tags": [
+      "git",
+      "merge",
+      "windows",
+      "squash-split"
+    ],
+    "files": [
+      "hardware/servo.py",
+      "hardware/dashboard.py",
+      "hardware/joints.py",
+      "hardware/logger.py",
+      "mocap/mocap_config.py",
+      "mocap/tracker.py"
+    ],
+    "date": "2026-06-28"
+  },
+  {
+    "id": "mem:1781188607596",
+    "kind": "decision",
+    "content": "Analytical moment arm now linear 7mm@0deg to 12mm@90deg via fixed point",
+    "tags": [
+      "moment-arm",
+      "analytical",
+      "fidelity"
+    ],
+    "files": [
+      "analytical_model.py",
+      "config.py"
+    ],
+    "file_path": "analytical_model.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-11",
+    "created_epoch": 1781116200,
+    "updated_at": "2026-06-11",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {}
+  },
+  {
+    "id": "mem:1781250109446",
+    "kind": "fact",
+    "content": "analyze_hw_validation.py picks dataset by substring/latest, reports cleaned M12/M32 agreement",
+    "tags": [
+      "validation",
+      "analysis",
+      "tooling"
+    ],
+    "files": [
+      "high_fidelity/analyze_hw_validation.py"
+    ],
+    "file_path": "high_fidelity/analyze_hw_validation.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-11",
+    "created_epoch": 1781116200,
+    "updated_at": "2026-06-11",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {}
+  },
+  {
+    "id": "mem:1781185879817",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "added",
+      "linear",
+      "angle",
+      "dependent",
+      "tendon",
+      "moment",
+      "arm",
+      "7mm"
+    ],
+    "files": [
+      "analytical_model.py::analytical_angles_deg"
+    ],
+    "file_path": "analytical_model.py",
+    "symbol_id": "analytical_model.py::analytical_angles_deg",
+    "symbol_hash": "cff02fc7",
+    "created_at": "2026-06-11T13:51:19.817137+00:00",
+    "created_epoch": 1781185879,
+    "updated_at": "2026-06-12T12:08:29.935868+00:00",
+    "stale": true,
+    "stale_reason": "symbol body changed",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1781185879815",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "added",
+      "linear",
+      "angle",
+      "dependent",
+      "tendon",
+      "moment",
+      "arm",
+      "7mm"
+    ],
+    "files": [
+      "analytical_model.py::_solve_scalar"
+    ],
+    "file_path": "analytical_model.py",
+    "symbol_id": "analytical_model.py::_solve_scalar",
+    "symbol_hash": "",
+    "created_at": "2026-06-11T13:51:19.815749+00:00",
+    "created_epoch": 1781185879,
+    "updated_at": "2026-06-11T14:36:47.596604+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1781185879809",
+    "kind": "decision",
+    "content": "Added linear angle-dependent tendon moment arm (7mm@0deg -> 12mm@90deg) to analytical model via Picard fixed-point; constant-arm path commented out as fallback; config flag MOMENT_ARM_ANGLE_DEPENDENT.",
+    "tags": [
+      "added",
+      "linear",
+      "angle",
+      "dependent",
+      "tendon",
+      "moment",
+      "arm",
+      "7mm"
+    ],
+    "files": [
+      "analytical_model.py::moment_arm_at_angle",
+      "analytical_model.py::_solve_scalar",
+      "analytical_model.py::tendon_tension",
+      "analytical_model.py::analytical_angles_deg",
+      "config.py"
+    ],
+    "file_path": "analytical_model.py",
+    "symbol_id": "analytical_model.py::moment_arm_at_angle",
+    "symbol_hash": "204528c7",
+    "created_at": "2026-06-11T13:51:19.809219+00:00",
+    "created_epoch": 1781185879,
+    "updated_at": "2026-06-17T11:15:57.362830+00:00",
+    "stale": true,
+    "stale_reason": "symbol body changed",
+    "observed_queries": [],
+    "evidence": {
+      "window_sec": 120,
+      "recent_action_kinds": [],
+      "recent_queries": []
+    }
+  },
+  {
+    "id": "mem:1781185879809",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "added",
+      "linear",
+      "angle",
+      "dependent",
+      "tendon",
+      "moment",
+      "arm",
+      "7mm",
+      "edited",
+      "during"
+    ],
+    "files": [
+      "analytical_model.py::moment_arm_at_angle"
+    ],
+    "file_path": "analytical_model.py",
+    "symbol_id": "analytical_model.py::moment_arm_at_angle",
+    "symbol_hash": "204528c7",
+    "created_at": "2026-06-11T13:51:19.809872+00:00",
+    "created_epoch": 1781185879,
+    "updated_at": "2026-06-17T11:15:57.362848+00:00",
+    "stale": true,
+    "stale_reason": "symbol body changed",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1781185879816",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "added",
+      "linear",
+      "angle",
+      "dependent",
+      "tendon",
+      "moment",
+      "arm",
+      "7mm"
+    ],
+    "files": [
+      "analytical_model.py::tendon_tension"
+    ],
+    "file_path": "analytical_model.py",
+    "symbol_id": "analytical_model.py::tendon_tension",
+    "symbol_hash": "e923c7f7",
+    "created_at": "2026-06-11T13:51:19.816549+00:00",
+    "created_epoch": 1781185879,
+    "updated_at": "2026-06-12T12:08:29.935846+00:00",
+    "stale": true,
+    "stale_reason": "symbol body changed",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1781185879817",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "added",
+      "linear",
+      "angle",
+      "dependent",
+      "tendon",
+      "moment",
+      "arm",
+      "7mm",
+      "add",
+      "load"
+    ],
+    "files": [
+      "config.py"
+    ],
+    "file_path": "config.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-11T13:51:19.817564+00:00",
+    "created_epoch": 1781185879,
+    "updated_at": "2026-06-25T11:33:01.106296+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [
+      "Update LOADCELL_SCALE and LOADCELL_INPUT_UNIT in config.py; verify _unit_factor in load_cell.py"
+    ],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [
+        "continue_retrieve",
+        "retrieve"
+      ],
+      "recent_queries": [
+        "Update LOADCELL_SCALE and LOADCELL_INPUT_UNIT in config.py; verify _unit_factor in load_cell.py"
+      ],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1781188607596",
+    "kind": "stale_marker",
+    "content": "Marked stale because symbol removed",
+    "tags": [],
+    "files": [
+      "analytical_model.py::_solve_scalar"
+    ],
+    "file_path": "analytical_model.py",
+    "symbol_id": "analytical_model.py::_solve_scalar",
+    "symbol_hash": "",
+    "created_at": "2026-06-11T14:36:47.596612+00:00",
+    "created_epoch": 1781188607,
+    "updated_at": "2026-06-11T14:36:47.596615+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [],
+    "evidence": {
+      "source_kind": "edit_observation"
+    }
+  },
+  {
+    "id": "mem:1781188607597",
+    "kind": "stale_marker",
+    "content": "Marked stale because symbol removed",
+    "tags": [],
+    "files": [
+      "analytical_model.py::moment_arm_at_angle",
+      "analytical_model.py::_solve_scalar",
+      "analytical_model.py::tendon_tension",
+      "analytical_model.py::analytical_angles_deg",
+      "config.py"
+    ],
+    "file_path": "analytical_model.py",
+    "symbol_id": "analytical_model.py::moment_arm_at_angle",
+    "symbol_hash": "204528c7",
+    "created_at": "2026-06-11T14:36:47.596621+00:00",
+    "created_epoch": 1781188607,
+    "updated_at": "2026-06-17T11:15:57.362861+00:00",
+    "stale": true,
+    "stale_reason": "symbol body changed",
+    "observed_queries": [],
+    "evidence": {
+      "source_kind": "stale_marker"
+    }
+  },
+  {
+    "id": "mem:1781189510546",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "new",
+      "reusable",
+      "validation",
+      "analysis",
+      "tool",
+      "pick",
+      "dataset",
+      "substring"
+    ],
+    "files": [
+      "high_fidelity/analyze_hw_validation.py"
+    ],
+    "file_path": "high_fidelity/analyze_hw_validation.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-11T14:51:50.546850+00:00",
+    "created_epoch": 1781189510,
+    "updated_at": "2026-06-11T14:51:50.546862+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1781189510545",
+    "kind": "decision",
+    "content": "New reusable HW-validation analysis tool: pick dataset by substring/path/latest, cleans (drop \u0394L=0, marker+pip guards, per-\u0394L MAD outlier reject), reports M12/M32 agreement, angle error, repeatability, per-\u0394L table, optional angle-dependent arm recompute.",
+    "tags": [
+      "new",
+      "reusable",
+      "validation",
+      "analysis",
+      "tool",
+      "pick",
+      "dataset",
+      "substring"
+    ],
+    "files": [
+      "high_fidelity/analyze_hw_validation.py"
+    ],
+    "file_path": "high_fidelity/analyze_hw_validation.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-11T14:51:50.546011+00:00",
+    "created_epoch": 1781189510,
+    "updated_at": "2026-06-11T14:51:50.546017+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "window_sec": 120,
+      "recent_action_kinds": [],
+      "recent_queries": []
+    }
+  },
+  {
+    "id": "mem:1781265639275",
+    "kind": "fact",
+    "content": "Validate map ordinally on corner-case separation, not degenerate uniform-case precision",
+    "tags": [
+      "paper",
+      "validation",
+      "morphology",
+      "strategy"
+    ],
+    "files": [
+      "high_fidelity/analyze_hw_validation.py"
+    ],
+    "file_path": "high_fidelity/analyze_hw_validation.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-12",
+    "created_epoch": 1781202600,
+    "updated_at": "2026-06-12",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {}
+  },
+  {
+    "id": "mem:1781265631763",
+    "kind": "decision",
+    "content": "Hardware-first to RA-L; keep model frozen at two parameters, don't grow it",
+    "tags": [
+      "paper",
+      "strategy",
+      "hardware",
+      "design-map"
+    ],
+    "files": [
+      "analytical_model.py"
+    ],
+    "file_path": "analytical_model.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-12",
+    "created_epoch": 1781202600,
+    "updated_at": "2026-06-12",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {}
+  },
+  {
+    "id": "mem:1781266109935",
+    "kind": "fact",
+    "content": "HW angle errors are slack (MCP late) + capstan friction (DIP starves), not model bug",
+    "tags": [
+      "hardware",
+      "moment-arm",
+      "friction",
+      "validation"
+    ],
+    "files": [
+      "high_fidelity/analyze_hw_validation.py"
+    ],
+    "file_path": "high_fidelity/analyze_hw_validation.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-12",
+    "created_epoch": 1781202600,
+    "updated_at": "2026-06-12",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {}
+  },
+  {
+    "id": "mem:1781265629877",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "new",
+      "slide",
+      "progress",
+      "review",
+      "deck",
+      "python",
+      "pptx",
+      "summarising"
+    ],
+    "files": [
+      "presentation/Stiffness_Ratio_Design_Map_Progress.pptx"
+    ],
+    "file_path": "presentation/Stiffness_Ratio_Design_Map_Progress.pptx",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-12T12:00:29.876981+00:00",
+    "created_epoch": 1781265629,
+    "updated_at": "2026-06-12T12:00:29.876995+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1781265629874",
+    "kind": "decision",
+    "content": "New 16-slide progress-review deck (python-pptx) summarising the stiffness-ratio design-map work for the professor.",
+    "tags": [
+      "new",
+      "slide",
+      "progress",
+      "review",
+      "deck",
+      "python",
+      "pptx",
+      "summarising"
+    ],
+    "files": [
+      "presentation/build_deck.py",
+      "presentation/Stiffness_Ratio_Design_Map_Progress.pptx"
+    ],
+    "file_path": "presentation/build_deck.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-12T12:00:29.874911+00:00",
+    "created_epoch": 1781265629,
+    "updated_at": "2026-06-12T12:00:29.874914+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "window_sec": 120,
+      "recent_action_kinds": [],
+      "recent_queries": []
+    }
+  },
+  {
+    "id": "mem:1781265629875",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "new",
+      "slide",
+      "progress",
+      "review",
+      "deck",
+      "python",
+      "pptx",
+      "summarising"
+    ],
+    "files": [
+      "presentation/build_deck.py"
+    ],
+    "file_path": "presentation/build_deck.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-12T12:00:29.875569+00:00",
+    "created_epoch": 1781265629,
+    "updated_at": "2026-06-12T12:00:29.875575+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1781266109937",
+    "kind": "stale_marker",
+    "content": "Marked stale because symbol body changed",
+    "tags": [],
+    "files": [
+      "analytical_model.py::analytical_angles_deg"
+    ],
+    "file_path": "analytical_model.py",
+    "symbol_id": "analytical_model.py::analytical_angles_deg",
+    "symbol_hash": "cff02fc7",
+    "created_at": "2026-06-12T12:08:29.935871+00:00",
+    "created_epoch": 1781266109,
+    "updated_at": "2026-06-12T12:08:29.935874+00:00",
+    "stale": true,
+    "stale_reason": "symbol body changed",
+    "observed_queries": [],
+    "evidence": {
+      "source_kind": "edit_observation"
+    }
+  },
+  {
+    "id": "mem:1781266109936",
+    "kind": "stale_marker",
+    "content": "Marked stale because symbol body changed",
+    "tags": [],
+    "files": [
+      "analytical_model.py::tendon_tension"
+    ],
+    "file_path": "analytical_model.py",
+    "symbol_id": "analytical_model.py::tendon_tension",
+    "symbol_hash": "e923c7f7",
+    "created_at": "2026-06-12T12:08:29.935858+00:00",
+    "created_epoch": 1781266109,
+    "updated_at": "2026-06-12T12:08:29.935862+00:00",
+    "stale": true,
+    "stale_reason": "symbol body changed",
+    "observed_queries": [],
+    "evidence": {
+      "source_kind": "edit_observation"
+    }
+  },
+  {
+    "id": "mem:1781266391879",
+    "kind": "edit_observation",
+    "content": "Edited after query: summarize all project work for presentation: stiffness ratio design map, analytical model, high-fidelity sim, hardware validation rig, gripper",
+    "tags": [
+      "edited",
+      "after",
+      "query",
+      "summarize",
+      "all",
+      "project",
+      "work",
+      "presentation"
+    ],
+    "files": [
+      "presentation/PROJECT_SUMMARY.md"
+    ],
+    "file_path": "presentation/PROJECT_SUMMARY.md",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-12T12:13:11.879631+00:00",
+    "created_epoch": 1781266391,
+    "updated_at": "2026-06-12T12:13:11.879638+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [
+      "summarize all project work for presentation: stiffness ratio design map, analytical model, high-fidelity sim, hardware validation rig, gripper"
+    ],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [
+        "continue_retrieve",
+        "retrieve"
+      ],
+      "recent_queries": [
+        "summarize all project work for presentation: stiffness ratio design map, analytical model, high-fidelity sim, hardware validation rig, gripper"
+      ],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1781600321936",
+    "kind": "next",
+    "content": "On hardware: confirm USB220 ASCII line format, tune LOADCELL unit/scale/baud, set PULL_SPOOL_RADIUS.",
+    "tags": [
+      "hardware",
+      "load-test",
+      "calibration",
+      "todo"
+    ],
+    "files": [
+      "config.py",
+      "hardware/load_cell.py"
+    ],
+    "file_path": "config.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-15",
+    "created_epoch": 1781461800,
+    "updated_at": "2026-06-15",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {}
+  },
+  {
+    "id": "mem:1781527323987",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "add",
+      "load",
+      "carrying",
+      "pull",
+      "out",
+      "hardware",
+      "test",
+      "futek"
+    ],
+    "files": [
+      "hardware/requirements.txt"
+    ],
+    "file_path": "hardware/requirements.txt",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-15T12:42:03.987542+00:00",
+    "created_epoch": 1781527323,
+    "updated_at": "2026-06-15T12:42:03.987547+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1781527323985",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "add",
+      "load",
+      "carrying",
+      "pull",
+      "out",
+      "hardware",
+      "test",
+      "futek",
+      "cell",
+      "readouts"
+    ],
+    "files": [
+      "hardware/load_cell.py"
+    ],
+    "file_path": "hardware/load_cell.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-15T12:42:03.985784+00:00",
+    "created_epoch": 1781527323,
+    "updated_at": "2026-06-22T08:58:18.079338+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1781527323984",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "add",
+      "load",
+      "carrying",
+      "pull",
+      "out",
+      "hardware",
+      "test",
+      "futek",
+      "rewrote",
+      "auto"
+    ],
+    "files": [
+      "hardware/servo.py"
+    ],
+    "file_path": "hardware/servo.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-15T12:42:03.984098+00:00",
+    "created_epoch": 1781527323,
+    "updated_at": "2026-06-23T11:03:52.511609+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1781527323984",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "add",
+      "load",
+      "carrying",
+      "pull",
+      "out",
+      "hardware",
+      "test",
+      "futek"
+    ],
+    "files": [
+      "hardware/logger.py"
+    ],
+    "file_path": "hardware/logger.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-15T12:42:03.984936+00:00",
+    "created_epoch": 1781527323,
+    "updated_at": "2026-06-15T12:42:03.984941+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1781527323986",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "add",
+      "load",
+      "carrying",
+      "pull",
+      "out",
+      "hardware",
+      "test",
+      "futek",
+      "now",
+      "uses"
+    ],
+    "files": [
+      "hardware/load_test_dashboard.py"
+    ],
+    "file_path": "hardware/load_test_dashboard.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-15T12:42:03.986654+00:00",
+    "created_epoch": 1781527323,
+    "updated_at": "2026-06-24T12:00:45.501435+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1781694957362",
+    "kind": "fact",
+    "content": "Project venv at .venv (gitignored) has numpy2.4.6/scipy1.17.1/mujoco3.9; run via .venv/bin/python. PCHIP active.",
+    "tags": [
+      "venv",
+      "environment",
+      "scipy",
+      "pchip"
+    ],
+    "files": [
+      "requirements.txt",
+      "analytical_model.py"
+    ],
+    "file_path": "requirements.txt",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-16",
+    "created_epoch": 1781548200,
+    "updated_at": "2026-06-16",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {}
+  },
+  {
+    "id": "mem:1781601204111",
+    "kind": "decision",
+    "content": "Moment arm uses PCHIP monotone-cubic with np.interp fallback when scipy unavailable.",
+    "tags": [
+      "moment-arm",
+      "analytical",
+      "pchip"
+    ],
+    "files": [
+      "analytical_model.py"
+    ],
+    "file_path": "analytical_model.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-16",
+    "created_epoch": 1781548200,
+    "updated_at": "2026-06-16",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {}
+  },
+  {
+    "id": "mem:1781601204198",
+    "kind": "blocker",
+    "content": "System scipy binary-incompatible with numpy 2.4.2; PCHIP falls back to np.interp until fixed.",
+    "tags": [
+      "scipy",
+      "numpy",
+      "environment"
+    ],
+    "files": [
+      "analytical_model.py"
+    ],
+    "file_path": "analytical_model.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-16",
+    "created_epoch": 1781548200,
+    "updated_at": "2026-06-16",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {}
+  },
+  {
+    "id": "mem:1781601201468",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "edited",
+      "during",
+      "active",
+      "session"
+    ],
+    "files": [
+      "analytical_model.py::_ma_increment"
+    ],
+    "file_path": "analytical_model.py",
+    "symbol_id": "analytical_model.py::_ma_increment",
+    "symbol_hash": "",
+    "created_at": "2026-06-16T09:13:21.468353+00:00",
+    "created_epoch": 1781601201,
+    "updated_at": "2026-06-17T11:15:57.362865+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1781768594548",
+    "kind": "fact",
+    "content": "Capstan friction \u221d tendon tension \u22480 at free k=0; stick-slip pin friction is the real chaos driver.",
+    "tags": [
+      "friction",
+      "capstan",
+      "chaos",
+      "stick-slip"
+    ],
+    "files": [
+      "high_fidelity/chaos_study.py",
+      "config.py"
+    ],
+    "file_path": "high_fidelity/chaos_study.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-17",
+    "created_epoch": 1781634600,
+    "updated_at": "2026-06-17",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {}
+  },
+  {
+    "id": "mem:1781704318729",
+    "kind": "fact",
+    "content": "Saturation order set by joint range: equal/zero-k locks DIP&MCP(90deg) before PIP(110deg); stiffness gradient makes it sequential.",
+    "tags": [
+      "saturation-order",
+      "stiffness-gradient",
+      "underactuated",
+      "closure"
+    ],
+    "files": [
+      "config.py",
+      "high_fidelity/chaos_study.py"
+    ],
+    "file_path": "config.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-17",
+    "created_epoch": 1781634600,
+    "updated_at": "2026-06-17",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {}
+  },
+  {
+    "id": "mem:1781695350878",
+    "kind": "fact",
+    "content": "Interactive viewer 1e6 N/m visual tendon needs \u22641ms substep; 2ms diverged (finger spun).",
+    "tags": [
+      "viewer",
+      "stability",
+      "tendon"
+    ],
+    "files": [
+      "high_fidelity/interactive_viewer.py"
+    ],
+    "file_path": "high_fidelity/interactive_viewer.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-17",
+    "created_epoch": 1781634600,
+    "updated_at": "2026-06-17",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {}
+  },
+  {
+    "id": "mem:1781703654058",
+    "kind": "fact",
+    "content": "Zero-stiffness finger: neutral flat-manifold, 9x IC-sensitive but sub-mm scatter under clean quasi-static pull (not chaotic).",
+    "tags": [
+      "chaos",
+      "stiffness",
+      "underactuated",
+      "neutral-equilibrium"
+    ],
+    "files": [
+      "high_fidelity/chaos_study.py"
+    ],
+    "file_path": "high_fidelity/chaos_study.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-17",
+    "created_epoch": 1781634600,
+    "updated_at": "2026-06-17",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {}
+  },
+  {
+    "id": "mem:1781694957367",
+    "kind": "stale_marker",
+    "content": "Marked stale because symbol removed",
+    "tags": [],
+    "files": [
+      "analytical_model.py::_ma_increment"
+    ],
+    "file_path": "analytical_model.py",
+    "symbol_id": "analytical_model.py::_ma_increment",
+    "symbol_hash": "",
+    "created_at": "2026-06-17T11:15:57.362867+00:00",
+    "created_epoch": 1781694957,
+    "updated_at": "2026-06-17T11:15:57.362869+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [],
+    "evidence": {
+      "source_kind": "edit_observation"
+    }
+  },
+  {
+    "id": "mem:1781695178742",
+    "kind": "query_association",
+    "content": "Queried during: JOINT_AXIS GRAVITY VIS_TENDON_STIFFNESS VIS_TENDON_DAMPING ranges stiffness",
+    "tags": [
+      "joint_axis",
+      "gravity",
+      "vis_tendon_stiffness",
+      "vis_tendon_damping",
+      "ranges",
+      "stiffness"
+    ],
+    "files": [
+      "config.py"
+    ],
+    "file_path": "config.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-17T11:19:38.742537+00:00",
+    "created_epoch": 1781695178,
+    "updated_at": "2026-06-17T11:19:38.742549+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [
+      "JOINT_AXIS GRAVITY VIS_TENDON_STIFFNESS VIS_TENDON_DAMPING ranges stiffness"
+    ],
+    "evidence": {
+      "source": "graph_read",
+      "anchor_mode": "file",
+      "session_epoch": 1781694957
+    }
+  },
+  {
+    "id": "mem:1781695349641",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "finger",
+      "spinning",
+      "substep",
+      "stiff",
+      "visual",
+      "tendon",
+      "5ms",
+      "2ms"
+    ],
+    "files": [
+      "high_fidelity/interactive_viewer.py::main"
+    ],
+    "file_path": "high_fidelity/interactive_viewer.py",
+    "symbol_id": "high_fidelity/interactive_viewer.py::main",
+    "symbol_hash": "2e197516",
+    "created_at": "2026-06-17T11:22:29.641325+00:00",
+    "created_epoch": 1781695349,
+    "updated_at": "2026-06-18T07:43:14.549248+00:00",
+    "stale": true,
+    "stale_reason": "symbol body changed",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1781695349640",
+    "kind": "decision",
+    "content": "Fix finger spinning: substep stiff visual tendon at 0.5ms (2ms was unstable)",
+    "tags": [
+      "finger",
+      "spinning",
+      "substep",
+      "stiff",
+      "visual",
+      "tendon",
+      "5ms",
+      "2ms"
+    ],
+    "files": [
+      "high_fidelity/interactive_viewer.py::main"
+    ],
+    "file_path": "high_fidelity/interactive_viewer.py",
+    "symbol_id": "high_fidelity/interactive_viewer.py::main",
+    "symbol_hash": "2e197516",
+    "created_at": "2026-06-17T11:22:29.640025+00:00",
+    "created_epoch": 1781695349,
+    "updated_at": "2026-06-18T07:43:14.549317+00:00",
+    "stale": true,
+    "stale_reason": "symbol body changed",
+    "observed_queries": [],
+    "evidence": {
+      "window_sec": 120,
+      "recent_action_kinds": [],
+      "recent_queries": []
+    }
+  },
+  {
+    "id": "mem:1781703652193",
+    "kind": "decision",
+    "content": "New chaos/non-determinism study: inject IC noise (grid + Monte-Carlo) at k=0 vs baseline stiffness, fixed DL=20mm, gravity off; config Section 9 CHAOS_* knobs.",
+    "tags": [
+      "new",
+      "chaos",
+      "non",
+      "determinism",
+      "study",
+      "inject",
+      "noise",
+      "grid"
+    ],
+    "files": [
+      "high_fidelity/chaos_study.py",
+      "config.py"
+    ],
+    "file_path": "high_fidelity/chaos_study.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-17T13:40:52.193799+00:00",
+    "created_epoch": 1781703652,
+    "updated_at": "2026-06-17T13:40:52.193804+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "window_sec": 120,
+      "recent_action_kinds": [],
+      "recent_queries": []
+    }
+  },
+  {
+    "id": "mem:1781703652194",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "new",
+      "chaos",
+      "non",
+      "determinism",
+      "study",
+      "inject",
+      "noise",
+      "grid",
+      "added",
+      "grounded"
+    ],
+    "files": [
+      "high_fidelity/chaos_study.py"
+    ],
+    "file_path": "high_fidelity/chaos_study.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-17T13:40:52.194871+00:00",
+    "created_epoch": 1781703652,
+    "updated_at": "2026-06-17T14:22:44.586470+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1781704767599",
+    "kind": "query_association",
+    "content": "Queried during: LIMITS_LO LIMITS_HI joint ranges saturation clip",
+    "tags": [
+      "limits_lo",
+      "limits_hi",
+      "joint",
+      "ranges",
+      "saturation",
+      "clip"
+    ],
+    "files": [
+      "high_fidelity/chaos_study.py"
+    ],
+    "file_path": "high_fidelity/chaos_study.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-17T13:59:27.599254+00:00",
+    "created_epoch": 1781704767,
+    "updated_at": "2026-06-17T13:59:27.599264+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [
+      "LIMITS_LO LIMITS_HI joint ranges saturation clip"
+    ],
+    "evidence": {
+      "source": "graph_read",
+      "anchor_mode": "file",
+      "session_epoch": 1781694957
+    }
+  },
+  {
+    "id": "mem:1781704767172",
+    "kind": "query_association",
+    "content": "Queried during: PIP_RANGE MCP_RANGE DIP_RANGE joint limits degrees",
+    "tags": [
+      "pip_range",
+      "mcp_range",
+      "dip_range",
+      "joint",
+      "limits",
+      "degrees"
+    ],
+    "files": [
+      "config.py"
+    ],
+    "file_path": "config.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-17T13:59:27.172767+00:00",
+    "created_epoch": 1781704767,
+    "updated_at": "2026-06-17T13:59:27.172807+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [
+      "PIP_RANGE MCP_RANGE DIP_RANGE joint limits degrees"
+    ],
+    "evidence": {
+      "source": "graph_read",
+      "anchor_mode": "file",
+      "session_epoch": 1781694957
+    }
+  },
+  {
+    "id": "mem:1781704791588",
+    "kind": "query_association",
+    "content": "Queried during: joint range pip mcp dip limited hinge",
+    "tags": [
+      "joint",
+      "range",
+      "pip",
+      "mcp",
+      "dip",
+      "limited",
+      "hinge"
+    ],
+    "files": [
+      "high_fidelity/finger.xml"
+    ],
+    "file_path": "high_fidelity/finger.xml",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-17T13:59:51.588816+00:00",
+    "created_epoch": 1781704791,
+    "updated_at": "2026-06-17T13:59:51.588859+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [
+      "joint range pip mcp dip limited hinge"
+    ],
+    "evidence": {
+      "source": "graph_read",
+      "anchor_mode": "file",
+      "session_epoch": 1781694957
+    }
+  },
+  {
+    "id": "mem:1781704792248",
+    "kind": "query_association",
+    "content": "Queried during: regenerate finger.xml interactive_viewer generation",
+    "tags": [
+      "regenerate",
+      "finger",
+      "xml",
+      "interactive_viewer",
+      "generation"
+    ],
+    "files": [
+      "high_fidelity/chaos_study.py::main"
+    ],
+    "file_path": "high_fidelity/chaos_study.py",
+    "symbol_id": "high_fidelity/chaos_study.py::main",
+    "symbol_hash": "5a72b889",
+    "created_at": "2026-06-17T13:59:52.248117+00:00",
+    "created_epoch": 1781704792,
+    "updated_at": "2026-06-17T14:13:41.087874+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [
+      "regenerate finger.xml interactive_viewer generation"
+    ],
+    "evidence": {
+      "source": "graph_read",
+      "anchor_mode": "symbol",
+      "session_epoch": 1781694957
+    }
+  },
+  {
+    "id": "mem:1781704939419",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "pip_range",
+      "upper",
+      "limit",
+      "110",
+      "deg",
+      "hardware",
+      "lock",
+      "out"
+    ],
+    "files": [
+      "high_fidelity/finger.xml"
+    ],
+    "file_path": "high_fidelity/finger.xml",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-17T14:02:19.419645+00:00",
+    "created_epoch": 1781704939,
+    "updated_at": "2026-06-17T14:02:19.419652+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1781705621089",
+    "kind": "stale_marker",
+    "content": "Marked stale because symbol removed",
+    "tags": [],
+    "files": [
+      "high_fidelity/chaos_study.py::main"
+    ],
+    "file_path": "high_fidelity/chaos_study.py",
+    "symbol_id": "high_fidelity/chaos_study.py::main",
+    "symbol_hash": "5a72b889",
+    "created_at": "2026-06-17T14:13:41.087900+00:00",
+    "created_epoch": 1781705621,
+    "updated_at": "2026-06-17T14:13:41.087909+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [
+      "regenerate finger.xml interactive_viewer generation"
+    ],
+    "evidence": {
+      "source_kind": "query_association"
+    }
+  },
+  {
+    "id": "mem:1781706164584",
+    "kind": "decision",
+    "content": "Added grounded capstan(tension-scaled) + pin Coulomb friction to chaos harness (config Section 10, settle_from_ic dof_frictionloss).",
+    "tags": [
+      "added",
+      "grounded",
+      "capstan",
+      "tension",
+      "scaled",
+      "pin",
+      "coulomb",
+      "friction"
+    ],
+    "files": [
+      "high_fidelity/chaos_study.py",
+      "config.py"
+    ],
+    "file_path": "high_fidelity/chaos_study.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-17T14:22:44.584863+00:00",
+    "created_epoch": 1781706164,
+    "updated_at": "2026-06-17T14:22:44.584867+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "window_sec": 120,
+      "recent_action_kinds": [],
+      "recent_queries": []
+    }
+  },
+  {
+    "id": "mem:1781768594551",
+    "kind": "stale_marker",
+    "content": "Marked stale because symbol body changed",
+    "tags": [],
+    "files": [
+      "high_fidelity/interactive_viewer.py::main"
+    ],
+    "file_path": "high_fidelity/interactive_viewer.py",
+    "symbol_id": "high_fidelity/interactive_viewer.py::main",
+    "symbol_hash": "2e197516",
+    "created_at": "2026-06-18T07:43:14.549293+00:00",
+    "created_epoch": 1781768594,
+    "updated_at": "2026-06-18T07:43:14.549328+00:00",
+    "stale": true,
+    "stale_reason": "symbol body changed",
+    "observed_queries": [],
+    "evidence": {
+      "source_kind": "decision"
+    }
+  },
+  {
+    "id": "mem:1781768740494",
+    "kind": "query_association",
+    "content": "Queried during: link weights springs",
+    "tags": [
+      "link",
+      "weights",
+      "springs"
+    ],
+    "files": [
+      "finger_model.py"
+    ],
+    "file_path": "finger_model.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-18T07:45:40.494527+00:00",
+    "created_epoch": 1781768740,
+    "updated_at": "2026-06-18T07:45:40.494547+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [
+      "link weights springs"
+    ],
+    "evidence": {
+      "source": "graph_read",
+      "anchor_mode": "file",
+      "session_epoch": 1781768594
+    }
+  },
+  {
+    "id": "mem:1781768740878",
+    "kind": "query_association",
+    "content": "Queried during: link weights springs",
+    "tags": [
+      "link",
+      "weights",
+      "springs"
+    ],
+    "files": [
+      "analytical_model.py::extract_kinematics_from_model"
+    ],
+    "file_path": "analytical_model.py",
+    "symbol_id": "analytical_model.py::extract_kinematics_from_model",
+    "symbol_hash": "edc1f278",
+    "created_at": "2026-06-18T07:45:40.878094+00:00",
+    "created_epoch": 1781768740,
+    "updated_at": "2026-06-18T07:45:40.878108+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [
+      "link weights springs"
+    ],
+    "evidence": {
+      "source": "graph_read",
+      "anchor_mode": "symbol",
+      "session_epoch": 1781768594
+    }
+  },
+  {
+    "id": "mem:1781768741307",
+    "kind": "query_association",
+    "content": "Queried during: link weights springs",
+    "tags": [
+      "link",
+      "weights",
+      "springs"
+    ],
+    "files": [
+      "high_fidelity/validation.py::mujoco_equilibrium"
+    ],
+    "file_path": "high_fidelity/validation.py",
+    "symbol_id": "high_fidelity/validation.py::mujoco_equilibrium",
+    "symbol_hash": "1cb56473",
+    "created_at": "2026-06-18T07:45:41.307835+00:00",
+    "created_epoch": 1781768741,
+    "updated_at": "2026-06-27T11:35:29.662683+00:00",
+    "stale": true,
+    "stale_reason": "symbol body changed",
+    "observed_queries": [
+      "link weights springs"
+    ],
+    "evidence": {
+      "source": "graph_read",
+      "anchor_mode": "symbol",
+      "session_epoch": 1781768594
+    }
+  },
+  {
+    "id": "mem:1781777627322",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "added",
+      "link",
+      "mass",
+      "constants",
+      "config",
+      "parametric",
+      "sweep",
+      "grid"
+    ],
+    "files": [
+      "high_fidelity/validation.py::build_rho_grid"
+    ],
+    "file_path": "high_fidelity/validation.py",
+    "symbol_id": "high_fidelity/validation.py::build_rho_grid",
+    "symbol_hash": "3e475763",
+    "created_at": "2026-06-18T10:13:47.322903+00:00",
+    "created_epoch": 1781777627,
+    "updated_at": "2026-06-22T07:01:04.464067+00:00",
+    "stale": true,
+    "stale_reason": "symbol body changed",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1781777627321",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "added",
+      "link",
+      "mass",
+      "constants",
+      "config",
+      "parametric",
+      "sweep",
+      "grid"
+    ],
+    "files": [
+      "high_fidelity/interactive_viewer.py"
+    ],
+    "file_path": "high_fidelity/interactive_viewer.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-18T10:13:47.321069+00:00",
+    "created_epoch": 1781777627,
+    "updated_at": "2026-06-18T10:13:47.321077+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1781777750301",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "gripper",
+      "mass",
+      "functions",
+      "now",
+      "read",
+      "from",
+      "config",
+      "instead"
+    ],
+    "files": [
+      "gripper/build_gripper.py::_mass"
+    ],
+    "file_path": "gripper/build_gripper.py",
+    "symbol_id": "gripper/build_gripper.py::_mass",
+    "symbol_hash": "",
+    "created_at": "2026-06-18T10:15:50.301012+00:00",
+    "created_epoch": 1781777750,
+    "updated_at": "2026-06-18T10:20:01.524941+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1781777750298",
+    "kind": "decision",
+    "content": "Gripper mass functions now read from config.py instead of params.json",
+    "tags": [
+      "gripper",
+      "mass",
+      "functions",
+      "now",
+      "read",
+      "from",
+      "config",
+      "instead"
+    ],
+    "files": [
+      "gripper/build_gripper.py::_mass",
+      "gripper/interactive_load_test.py::_mass"
+    ],
+    "file_path": "gripper/build_gripper.py",
+    "symbol_id": "gripper/build_gripper.py::_mass",
+    "symbol_hash": "",
+    "created_at": "2026-06-18T10:15:50.298362+00:00",
+    "created_epoch": 1781777750,
+    "updated_at": "2026-06-18T10:20:01.524932+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [],
+    "evidence": {
+      "window_sec": 120,
+      "recent_action_kinds": [],
+      "recent_queries": []
+    }
+  },
+  {
+    "id": "mem:1781777750303",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "gripper",
+      "mass",
+      "functions",
+      "now",
+      "read",
+      "from",
+      "config",
+      "instead"
+    ],
+    "files": [
+      "gripper/interactive_load_test.py::_mass"
+    ],
+    "file_path": "gripper/interactive_load_test.py",
+    "symbol_id": "gripper/interactive_load_test.py::_mass",
+    "symbol_hash": "",
+    "created_at": "2026-06-18T10:15:50.303388+00:00",
+    "created_epoch": 1781777750,
+    "updated_at": "2026-06-18T10:20:01.524899+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1781778001528",
+    "kind": "stale_marker",
+    "content": "Marked stale because symbol removed",
+    "tags": [],
+    "files": [
+      "gripper/build_gripper.py::_mass",
+      "gripper/interactive_load_test.py::_mass"
+    ],
+    "file_path": "gripper/build_gripper.py",
+    "symbol_id": "gripper/build_gripper.py::_mass",
+    "symbol_hash": "",
+    "created_at": "2026-06-18T10:20:01.524934+00:00",
+    "created_epoch": 1781778001,
+    "updated_at": "2026-06-18T10:20:01.524944+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [],
+    "evidence": {
+      "source_kind": "edit_observation"
+    }
+  },
+  {
+    "id": "mem:1781778001526",
+    "kind": "stale_marker",
+    "content": "Marked stale because symbol removed",
+    "tags": [],
+    "files": [
+      "gripper/interactive_load_test.py::_mass"
+    ],
+    "file_path": "gripper/interactive_load_test.py",
+    "symbol_id": "gripper/interactive_load_test.py::_mass",
+    "symbol_hash": "",
+    "created_at": "2026-06-18T10:20:01.524920+00:00",
+    "created_epoch": 1781778001,
+    "updated_at": "2026-06-18T10:20:01.524927+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [],
+    "evidence": {
+      "source_kind": "edit_observation"
+    }
+  },
+  {
+    "id": "mem:1781780153083",
+    "kind": "decision",
+    "content": "New headless \u03c11\u00d7\u03c13 stiffness sweep of gripper holding capacity (Tmax) \u2192 CSV + heatmap; config: 41 kgf\u00b7cm servo + safety factor, hardware max aperture.",
+    "tags": [
+      "new",
+      "headless",
+      "stiffness",
+      "sweep",
+      "gripper",
+      "holding",
+      "capacity",
+      "tmax"
+    ],
+    "files": [
+      "gripper/stiffness_sweep.py",
+      "config.py"
+    ],
+    "file_path": "gripper/stiffness_sweep.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-18T10:55:53.083284+00:00",
+    "created_epoch": 1781780153,
+    "updated_at": "2026-06-18T10:55:53.083293+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "window_sec": 120,
+      "recent_action_kinds": [],
+      "recent_queries": []
+    }
+  },
+  {
+    "id": "mem:1781780153086",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "new",
+      "headless",
+      "stiffness",
+      "sweep",
+      "gripper",
+      "holding",
+      "capacity",
+      "tmax",
+      "pointed",
+      "geometry"
+    ],
+    "files": [
+      "gripper/stiffness_sweep.py"
+    ],
+    "file_path": "gripper/stiffness_sweep.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-18T10:55:53.086059+00:00",
+    "created_epoch": 1781780153,
+    "updated_at": "2026-06-25T10:48:04.861662+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [
+      "edit stiffness_sweep.py SWEEP config defaults, splay init, run_combos mode, argparse combos"
+    ],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [
+        "continue_retrieve",
+        "retrieve",
+        "register_edit"
+      ],
+      "recent_queries": [
+        "edit stiffness_sweep.py SWEEP config defaults, splay init, run_combos mode, argparse combos"
+      ],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1782125174785",
+    "kind": "fact",
+    "content": "Servo CONNECT silently failed: xplat comports() lists /dev/ttyS*, openPort raises, uncaught in autodetect_servo.",
+    "tags": [
+      "hardware",
+      "servo",
+      "dashboard",
+      "bugfix"
+    ],
+    "files": [
+      "hardware/servo.py",
+      "hardware/load_test_dashboard.py"
+    ],
+    "file_path": "hardware/servo.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-22",
+    "created_epoch": 1782066600,
+    "updated_at": "2026-06-22",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {}
+  },
+  {
+    "id": "mem:1782112003023",
+    "kind": "fact",
+    "content": "GEMINI.md & .github/copilot-instructions.md are verbatim copies of AGENTS.md (de-symlinked on Windows); resync after AGENTS edits.",
+    "tags": [
+      "context",
+      "docs",
+      "agents"
+    ],
+    "files": [
+      "AGENTS.md",
+      "GEMINI.md",
+      ".github/copilot-instructions.md"
+    ],
+    "file_path": "AGENTS.md",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-22",
+    "created_epoch": 1782066600,
+    "updated_at": "2026-06-22",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {}
+  },
+  {
+    "id": "mem:1782124009594",
+    "kind": "blocker",
+    "content": "Servo connect fails: bus motors are id2/id3@57600 and id15@1Mbaud, config expects 15/16/17 one baud.",
+    "tags": [
+      "hardware",
+      "servo",
+      "u2d2",
+      "dashboard"
+    ],
+    "files": [
+      "config.py",
+      "hardware/servo.py",
+      "hardware/load_test_dashboard.py"
+    ],
+    "file_path": "config.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-22",
+    "created_epoch": 1782066600,
+    "updated_at": "2026-06-22",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {}
+  },
+  {
+    "id": "mem:1782133112309",
+    "kind": "decision",
+    "content": "Dashboards now torque-off servos on any exit via atexit+SIGINT/SIGTERM (install_emergency_shutdown), not just window close.",
+    "tags": [
+      "servo",
+      "shutdown",
+      "dashboard",
+      "safety"
+    ],
+    "files": [
+      "hardware/servo.py",
+      "hardware/dashboard.py",
+      "hardware/load_test_dashboard.py"
+    ],
+    "file_path": "hardware/servo.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-22",
+    "created_epoch": 1782066600,
+    "updated_at": "2026-06-22",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {}
+  },
+  {
+    "id": "mem:1782111664465",
+    "kind": "stale_marker",
+    "content": "Marked stale because symbol body changed",
+    "tags": [],
+    "files": [
+      "high_fidelity/validation.py::build_rho_grid"
+    ],
+    "file_path": "high_fidelity/validation.py",
+    "symbol_id": "high_fidelity/validation.py::build_rho_grid",
+    "symbol_hash": "3e475763",
+    "created_at": "2026-06-22T07:01:04.464092+00:00",
+    "created_epoch": 1782111664,
+    "updated_at": "2026-06-22T07:01:04.464100+00:00",
+    "stale": true,
+    "stale_reason": "symbol body changed",
+    "observed_queries": [],
+    "evidence": {
+      "source_kind": "edit_observation"
+    }
+  },
+  {
+    "id": "mem:1782111998678",
+    "kind": "edit_observation",
+    "content": "Edited after query: update project context and awareness files after Windows changes were made and not synced",
+    "tags": [
+      "synced",
+      "gemini",
+      "copilot",
+      "mirrors",
+      "agents",
+      "refreshed",
+      "context",
+      "mocap"
+    ],
+    "files": [
+      ".github/copilot-instructions.md"
+    ],
+    "file_path": ".github/copilot-instructions.md",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-22T07:06:38.678035+00:00",
+    "created_epoch": 1782111998,
+    "updated_at": "2026-06-22T07:06:38.678044+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [
+      "update project context and awareness files after Windows changes were made and not synced"
+    ],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [
+        "continue_retrieve",
+        "retrieve"
+      ],
+      "recent_queries": [
+        "update project context and awareness files after Windows changes were made and not synced"
+      ],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1782111998674",
+    "kind": "decision",
+    "content": "Re-synced Gemini/Copilot mirrors to AGENTS.md and refreshed CONTEXT.md for mocap/dashboard work",
+    "tags": [
+      "synced",
+      "gemini",
+      "copilot",
+      "mirrors",
+      "agents",
+      "refreshed",
+      "context",
+      "mocap"
+    ],
+    "files": [
+      "GEMINI.md",
+      ".github/copilot-instructions.md",
+      "CONTEXT.md"
+    ],
+    "file_path": "GEMINI.md",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-22T07:06:38.674059+00:00",
+    "created_epoch": 1782111998,
+    "updated_at": "2026-06-22T07:06:38.674065+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [
+      "update project context and awareness files after Windows changes were made and not synced"
+    ],
+    "evidence": {
+      "window_sec": 120,
+      "recent_action_kinds": [
+        "continue_retrieve",
+        "retrieve"
+      ],
+      "recent_queries": [
+        "update project context and awareness files after Windows changes were made and not synced"
+      ]
+    }
+  },
+  {
+    "id": "mem:1782111998675",
+    "kind": "edit_observation",
+    "content": "Edited after query: update project context and awareness files after Windows changes were made and not synced",
+    "tags": [
+      "synced",
+      "gemini",
+      "copilot",
+      "mirrors",
+      "agents",
+      "refreshed",
+      "context",
+      "mocap"
+    ],
+    "files": [
+      "GEMINI.md"
+    ],
+    "file_path": "GEMINI.md",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-22T07:06:38.675977+00:00",
+    "created_epoch": 1782111998,
+    "updated_at": "2026-06-22T07:06:38.675987+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [
+      "update project context and awareness files after Windows changes were made and not synced"
+    ],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [
+        "continue_retrieve",
+        "retrieve"
+      ],
+      "recent_queries": [
+        "update project context and awareness files after Windows changes were made and not synced"
+      ],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1782111998680",
+    "kind": "edit_observation",
+    "content": "Edited after query: update project context and awareness files after Windows changes were made and not synced",
+    "tags": [
+      "synced",
+      "gemini",
+      "copilot",
+      "mirrors",
+      "agents",
+      "refreshed",
+      "context",
+      "mocap"
+    ],
+    "files": [
+      "CONTEXT.md"
+    ],
+    "file_path": "CONTEXT.md",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-22T07:06:38.680006+00:00",
+    "created_epoch": 1782111998,
+    "updated_at": "2026-06-22T07:06:38.680014+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [
+      "update project context and awareness files after Windows changes were made and not synced"
+    ],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [
+        "continue_retrieve",
+        "retrieve"
+      ],
+      "recent_queries": [
+        "update project context and awareness files after Windows changes were made and not synced"
+      ],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1782123596549",
+    "kind": "query_association",
+    "content": "Queried during: LOADCELL_SCALE LOADCELL_INPUT_UNIT",
+    "tags": [
+      "loadcell_scale",
+      "loadcell_input_unit"
+    ],
+    "files": [
+      "config.py"
+    ],
+    "file_path": "config.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-22T10:19:56.549876+00:00",
+    "created_epoch": 1782123596,
+    "updated_at": "2026-06-22T10:19:56.549888+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [
+      "LOADCELL_SCALE LOADCELL_INPUT_UNIT"
+    ],
+    "evidence": {
+      "source": "graph_read",
+      "anchor_mode": "file",
+      "session_epoch": 1782123575
+    }
+  },
+  {
+    "id": "mem:1782125173395",
+    "kind": "decision",
+    "content": "Guard openPort() with try/except OSError so phantom /dev/ttyS* ports don't crash the servo scan",
+    "tags": [
+      "guard",
+      "openport",
+      "try",
+      "except",
+      "oserror",
+      "phantom",
+      "dev",
+      "ttys"
+    ],
+    "files": [
+      "hardware/servo.py::autodetect_servo"
+    ],
+    "file_path": "hardware/servo.py",
+    "symbol_id": "hardware/servo.py::autodetect_servo",
+    "symbol_hash": "fefa3b4f",
+    "created_at": "2026-06-22T10:46:13.395880+00:00",
+    "created_epoch": 1782125173,
+    "updated_at": "2026-06-22T12:49:35.426017+00:00",
+    "stale": true,
+    "stale_reason": "symbol body changed",
+    "observed_queries": [],
+    "evidence": {
+      "window_sec": 120,
+      "recent_action_kinds": [],
+      "recent_queries": []
+    }
+  },
+  {
+    "id": "mem:1782125173397",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "guard",
+      "openport",
+      "try",
+      "except",
+      "oserror",
+      "phantom",
+      "dev",
+      "ttys"
+    ],
+    "files": [
+      "hardware/servo.py::autodetect_servo"
+    ],
+    "file_path": "hardware/servo.py",
+    "symbol_id": "hardware/servo.py::autodetect_servo",
+    "symbol_hash": "fefa3b4f",
+    "created_at": "2026-06-22T10:46:13.397761+00:00",
+    "created_epoch": 1782125173,
+    "updated_at": "2026-06-22T12:49:35.425990+00:00",
+    "stale": true,
+    "stale_reason": "symbol body changed",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1782125414944",
+    "kind": "edit_observation",
+    "content": "Edited after query: flip servo direction sign convention, same as sweep dashboard; add direction flip to load test dashboard servos",
+    "tags": [
+      "add",
+      "per",
+      "servo",
+      "direction",
+      "flip",
+      "pull",
+      "load",
+      "test"
+    ],
+    "files": [
+      "hardware/load_test_dashboard.py::_flip_dir"
+    ],
+    "file_path": "hardware/load_test_dashboard.py",
+    "symbol_id": "hardware/load_test_dashboard.py::_flip_dir",
+    "symbol_hash": "",
+    "created_at": "2026-06-22T10:50:14.944793+00:00",
+    "created_epoch": 1782125414,
+    "updated_at": "2026-06-22T12:41:46.911645+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [
+      "flip servo direction sign convention, same as sweep dashboard; add direction flip to load test dashboard servos"
+    ],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [
+        "continue_retrieve",
+        "retrieve"
+      ],
+      "recent_queries": [
+        "flip servo direction sign convention, same as sweep dashboard; add direction flip to load test dashboard servos"
+      ],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1782125414942",
+    "kind": "decision",
+    "content": "Add per-servo direction flip (A/B/pull) to load test dashboard tensioning group, like sweep dashboard's FLIP PULL DIR",
+    "tags": [
+      "add",
+      "per",
+      "servo",
+      "direction",
+      "flip",
+      "pull",
+      "load",
+      "test"
+    ],
+    "files": [
+      "hardware/load_test_dashboard.py::_flip_dir"
+    ],
+    "file_path": "hardware/load_test_dashboard.py",
+    "symbol_id": "hardware/load_test_dashboard.py::_flip_dir",
+    "symbol_hash": "",
+    "created_at": "2026-06-22T10:50:14.942942+00:00",
+    "created_epoch": 1782125414,
+    "updated_at": "2026-06-22T12:41:46.911673+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [
+      "flip servo direction sign convention, same as sweep dashboard; add direction flip to load test dashboard servos"
+    ],
+    "evidence": {
+      "window_sec": 120,
+      "recent_action_kinds": [
+        "continue_retrieve",
+        "retrieve"
+      ],
+      "recent_queries": [
+        "flip servo direction sign convention, same as sweep dashboard; add direction flip to load test dashboard servos"
+      ]
+    }
+  },
+  {
+    "id": "mem:1782132106913",
+    "kind": "stale_marker",
+    "content": "Marked stale because symbol removed",
+    "tags": [],
+    "files": [
+      "hardware/load_test_dashboard.py::_flip_dir"
+    ],
+    "file_path": "hardware/load_test_dashboard.py",
+    "symbol_id": "hardware/load_test_dashboard.py::_flip_dir",
+    "symbol_hash": "",
+    "created_at": "2026-06-22T12:41:46.911660+00:00",
+    "created_epoch": 1782132106,
+    "updated_at": "2026-06-22T12:41:46.911678+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [
+      "flip servo direction sign convention, same as sweep dashboard; add direction flip to load test dashboard servos"
+    ],
+    "evidence": {
+      "source_kind": "decision"
+    }
+  },
+  {
+    "id": "mem:1782132402137",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "add",
+      "save",
+      "run",
+      "button",
+      "writing",
+      "one",
+      "summary",
+      "csv"
+    ],
+    "files": [
+      "hardware/load_test_dashboard.py::_log_row"
+    ],
+    "file_path": "hardware/load_test_dashboard.py",
+    "symbol_id": "hardware/load_test_dashboard.py::_log_row",
+    "symbol_hash": "",
+    "created_at": "2026-06-22T12:46:42.137062+00:00",
+    "created_epoch": 1782132402,
+    "updated_at": "2026-06-22T12:49:35.426041+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1782132402126",
+    "kind": "decision",
+    "content": "Add SAVE RUN button writing one summary CSV row (max tension, capacity, pull/grip dL, currents); new capacity_n column",
+    "tags": [
+      "add",
+      "save",
+      "run",
+      "button",
+      "writing",
+      "one",
+      "summary",
+      "csv"
+    ],
+    "files": [
+      "hardware/load_test_dashboard.py::_save_run",
+      "hardware/load_test_dashboard.py::_log_row"
+    ],
+    "file_path": "hardware/load_test_dashboard.py",
+    "symbol_id": "hardware/load_test_dashboard.py::_save_run",
+    "symbol_hash": "",
+    "created_at": "2026-06-22T12:46:42.126627+00:00",
+    "created_epoch": 1782132402,
+    "updated_at": "2026-06-22T12:49:35.426034+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [],
+    "evidence": {
+      "window_sec": 120,
+      "recent_action_kinds": [],
+      "recent_queries": []
+    }
+  },
+  {
+    "id": "mem:1782132402133",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "add",
+      "save",
+      "run",
+      "button",
+      "writing",
+      "one",
+      "summary",
+      "csv"
+    ],
+    "files": [
+      "hardware/load_test_dashboard.py::_save_run"
+    ],
+    "file_path": "hardware/load_test_dashboard.py",
+    "symbol_id": "hardware/load_test_dashboard.py::_save_run",
+    "symbol_hash": "",
+    "created_at": "2026-06-22T12:46:42.133565+00:00",
+    "created_epoch": 1782132402,
+    "updated_at": "2026-06-22T12:49:35.426026+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1782132575428",
+    "kind": "stale_marker",
+    "content": "Marked stale because symbol body changed",
+    "tags": [],
+    "files": [
+      "hardware/servo.py::autodetect_servo"
+    ],
+    "file_path": "hardware/servo.py",
+    "symbol_id": "hardware/servo.py::autodetect_servo",
+    "symbol_hash": "fefa3b4f",
+    "created_at": "2026-06-22T12:49:35.426007+00:00",
+    "created_epoch": 1782132575,
+    "updated_at": "2026-06-22T12:49:35.426022+00:00",
+    "stale": true,
+    "stale_reason": "symbol body changed",
+    "observed_queries": [],
+    "evidence": {
+      "source_kind": "decision"
+    }
+  },
+  {
+    "id": "mem:1782132575436",
+    "kind": "stale_marker",
+    "content": "Marked stale because symbol removed",
+    "tags": [],
+    "files": [
+      "hardware/load_test_dashboard.py::_save_run",
+      "hardware/load_test_dashboard.py::_log_row"
+    ],
+    "file_path": "hardware/load_test_dashboard.py",
+    "symbol_id": "hardware/load_test_dashboard.py::_save_run",
+    "symbol_hash": "",
+    "created_at": "2026-06-22T12:49:35.426029+00:00",
+    "created_epoch": 1782132575,
+    "updated_at": "2026-06-22T12:49:35.426038+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [],
+    "evidence": {
+      "source_kind": "decision"
+    }
+  },
+  {
+    "id": "mem:1782132575444",
+    "kind": "stale_marker",
+    "content": "Marked stale because symbol removed",
+    "tags": [],
+    "files": [
+      "hardware/load_test_dashboard.py::_log_row"
+    ],
+    "file_path": "hardware/load_test_dashboard.py",
+    "symbol_id": "hardware/load_test_dashboard.py::_log_row",
+    "symbol_hash": "",
+    "created_at": "2026-06-22T12:49:35.426042+00:00",
+    "created_epoch": 1782132575,
+    "updated_at": "2026-06-22T12:49:35.426045+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [],
+    "evidence": {
+      "source_kind": "edit_observation"
+    }
+  },
+  {
+    "id": "mem:1782132681859",
+    "kind": "query_association",
+    "content": "Queried during: on close, shutdown, kill servos, torque off, atexit, WM_DELETE_WINDOW, destroy",
+    "tags": [
+      "close",
+      "shutdown",
+      "kill",
+      "servos",
+      "torque",
+      "off",
+      "atexit",
+      "wm_delete_window"
+    ],
+    "files": [
+      "hardware/load_test_dashboard.py"
+    ],
+    "file_path": "hardware/load_test_dashboard.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-22T12:51:21.859042+00:00",
+    "created_epoch": 1782132681,
+    "updated_at": "2026-06-22T12:51:21.859057+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [
+      "on close, shutdown, kill servos, torque off, atexit, WM_DELETE_WINDOW, destroy"
+    ],
+    "evidence": {
+      "source": "graph_read",
+      "anchor_mode": "file",
+      "session_epoch": 1782132575
+    }
+  },
+  {
+    "id": "mem:1782132682833",
+    "kind": "query_association",
+    "content": "Queried during: on close, shutdown, kill servos, torque off, atexit, WM_DELETE_WINDOW, destroy",
+    "tags": [
+      "close",
+      "shutdown",
+      "kill",
+      "servos",
+      "torque",
+      "off",
+      "atexit",
+      "wm_delete_window"
+    ],
+    "files": [
+      "hardware/dashboard.py"
+    ],
+    "file_path": "hardware/dashboard.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-22T12:51:22.833222+00:00",
+    "created_epoch": 1782132682,
+    "updated_at": "2026-06-22T12:51:22.833263+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [
+      "on close, shutdown, kill servos, torque off, atexit, WM_DELETE_WINDOW, destroy"
+    ],
+    "evidence": {
+      "source": "graph_read",
+      "anchor_mode": "file",
+      "session_epoch": 1782132575
+    }
+  },
+  {
+    "id": "mem:1782132683096",
+    "kind": "query_association",
+    "content": "Queried during: on close, shutdown, kill servos, torque off, atexit, WM_DELETE_WINDOW, destroy",
+    "tags": [
+      "close",
+      "shutdown",
+      "kill",
+      "servos",
+      "torque",
+      "off",
+      "atexit",
+      "wm_delete_window"
+    ],
+    "files": [
+      "hardware/negative_control_dashboard.py"
+    ],
+    "file_path": "hardware/negative_control_dashboard.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-22T12:51:23.096578+00:00",
+    "created_epoch": 1782132683,
+    "updated_at": "2026-06-22T12:51:23.096598+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [
+      "on close, shutdown, kill servos, torque off, atexit, WM_DELETE_WINDOW, destroy"
+    ],
+    "evidence": {
+      "source": "graph_read",
+      "anchor_mode": "file",
+      "session_epoch": 1782132575
+    }
+  },
+  {
+    "id": "mem:1782133110926",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "add",
+      "atexit",
+      "sigint",
+      "sigterm",
+      "emergency",
+      "shutdown",
+      "servos",
+      "torque"
+    ],
+    "files": [
+      "hardware/load_test_dashboard.py::_shutdown"
+    ],
+    "file_path": "hardware/load_test_dashboard.py",
+    "symbol_id": "hardware/load_test_dashboard.py::_shutdown",
+    "symbol_hash": "",
+    "created_at": "2026-06-22T12:58:30.926111+00:00",
+    "created_epoch": 1782133110,
+    "updated_at": "2026-06-23T06:25:04.371013+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1782133110921",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "add",
+      "atexit",
+      "sigint",
+      "sigterm",
+      "emergency",
+      "shutdown",
+      "servos",
+      "torque"
+    ],
+    "files": [
+      "hardware/servo.py::install_emergency_shutdown"
+    ],
+    "file_path": "hardware/servo.py",
+    "symbol_id": "hardware/servo.py::install_emergency_shutdown",
+    "symbol_hash": "21f52b24",
+    "created_at": "2026-06-22T12:58:30.921172+00:00",
+    "created_epoch": 1782133110,
+    "updated_at": "2026-06-22T12:58:30.921182+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1782133110916",
+    "kind": "decision",
+    "content": "Add atexit+SIGINT/SIGTERM emergency shutdown so servos torque-off on any exit, not just window close",
+    "tags": [
+      "add",
+      "atexit",
+      "sigint",
+      "sigterm",
+      "emergency",
+      "shutdown",
+      "servos",
+      "torque"
+    ],
+    "files": [
+      "hardware/servo.py::install_emergency_shutdown",
+      "hardware/dashboard.py::_shutdown",
+      "hardware/load_test_dashboard.py::_shutdown"
+    ],
+    "file_path": "hardware/servo.py",
+    "symbol_id": "hardware/servo.py::install_emergency_shutdown",
+    "symbol_hash": "21f52b24",
+    "created_at": "2026-06-22T12:58:30.916496+00:00",
+    "created_epoch": 1782133110,
+    "updated_at": "2026-06-22T12:58:30.916519+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "window_sec": 120,
+      "recent_action_kinds": [],
+      "recent_queries": []
+    }
+  },
+  {
+    "id": "mem:1782133110923",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "add",
+      "atexit",
+      "sigint",
+      "sigterm",
+      "emergency",
+      "shutdown",
+      "servos",
+      "torque"
+    ],
+    "files": [
+      "hardware/dashboard.py::_shutdown"
+    ],
+    "file_path": "hardware/dashboard.py",
+    "symbol_id": "hardware/dashboard.py::_shutdown",
+    "symbol_hash": "",
+    "created_at": "2026-06-22T12:58:30.923619+00:00",
+    "created_epoch": 1782133110,
+    "updated_at": "2026-06-23T06:25:04.370985+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1782135359857",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "pull",
+      "test",
+      "longer",
+      "halts",
+      "peak",
+      "keeps",
+      "pulling",
+      "logs"
+    ],
+    "files": [
+      "hardware/load_test_dashboard.py::_tick"
+    ],
+    "file_path": "hardware/load_test_dashboard.py",
+    "symbol_id": "hardware/load_test_dashboard.py::_tick",
+    "symbol_hash": "",
+    "created_at": "2026-06-22T13:35:59.857508+00:00",
+    "created_epoch": 1782135359,
+    "updated_at": "2026-06-23T06:25:04.371039+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1782135359852",
+    "kind": "decision",
+    "content": "Pull test no longer halts on peak; keeps pulling, logs each peak with arm/valley hysteresis, latches max as capacity",
+    "tags": [
+      "pull",
+      "test",
+      "longer",
+      "halts",
+      "peak",
+      "keeps",
+      "pulling",
+      "logs"
+    ],
+    "files": [
+      "hardware/load_test_dashboard.py::_on_release",
+      "hardware/load_test_dashboard.py::_tick",
+      "hardware/load_test_dashboard.py::_start_pull"
+    ],
+    "file_path": "hardware/load_test_dashboard.py",
+    "symbol_id": "hardware/load_test_dashboard.py::_on_release",
+    "symbol_hash": "",
+    "created_at": "2026-06-22T13:35:59.852884+00:00",
+    "created_epoch": 1782135359,
+    "updated_at": "2026-06-23T06:25:04.371034+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [],
+    "evidence": {
+      "window_sec": 120,
+      "recent_action_kinds": [],
+      "recent_queries": []
+    }
+  },
+  {
+    "id": "mem:1782135359855",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "pull",
+      "test",
+      "longer",
+      "halts",
+      "peak",
+      "keeps",
+      "pulling",
+      "logs"
+    ],
+    "files": [
+      "hardware/load_test_dashboard.py::_on_release"
+    ],
+    "file_path": "hardware/load_test_dashboard.py",
+    "symbol_id": "hardware/load_test_dashboard.py::_on_release",
+    "symbol_hash": "",
+    "created_at": "2026-06-22T13:35:59.854993+00:00",
+    "created_epoch": 1782135359,
+    "updated_at": "2026-06-23T06:25:04.371028+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1782135359859",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "pull",
+      "test",
+      "longer",
+      "halts",
+      "peak",
+      "keeps",
+      "pulling",
+      "logs",
+      "start",
+      "now"
+    ],
+    "files": [
+      "hardware/load_test_dashboard.py::_start_pull"
+    ],
+    "file_path": "hardware/load_test_dashboard.py",
+    "symbol_id": "hardware/load_test_dashboard.py::_start_pull",
+    "symbol_hash": "",
+    "created_at": "2026-06-22T13:35:59.859815+00:00",
+    "created_epoch": 1782135359,
+    "updated_at": "2026-06-24T13:05:28.707970+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1782302144197",
+    "kind": "fact",
+    "content": "Finger A default pull_sign flipped to -1 (config.FINGER_A_PULL_SIGN); winds opposite to finger B",
+    "tags": [
+      "servo",
+      "pull_sign",
+      "direction",
+      "finger_a"
+    ],
+    "files": [
+      "config.py",
+      "hardware/load_test_dashboard.py"
+    ],
+    "file_path": "config.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-23",
+    "created_epoch": 1782153000,
+    "updated_at": "2026-06-23",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {}
+  },
+  {
+    "id": "mem:1782195904387",
+    "kind": "stale_marker",
+    "content": "Marked stale because symbol removed",
+    "tags": [],
+    "files": [
+      "hardware/load_test_dashboard.py::_tick"
+    ],
+    "file_path": "hardware/load_test_dashboard.py",
+    "symbol_id": "hardware/load_test_dashboard.py::_tick",
+    "symbol_hash": "",
+    "created_at": "2026-06-23T06:25:04.371040+00:00",
+    "created_epoch": 1782195904,
+    "updated_at": "2026-06-23T06:25:04.371041+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [],
+    "evidence": {
+      "source_kind": "edit_observation"
+    }
+  },
+  {
+    "id": "mem:1782195904381",
+    "kind": "stale_marker",
+    "content": "Marked stale because symbol removed",
+    "tags": [],
+    "files": [
+      "hardware/load_test_dashboard.py::_on_release",
+      "hardware/load_test_dashboard.py::_tick",
+      "hardware/load_test_dashboard.py::_start_pull"
+    ],
+    "file_path": "hardware/load_test_dashboard.py",
+    "symbol_id": "hardware/load_test_dashboard.py::_on_release",
+    "symbol_hash": "",
+    "created_at": "2026-06-23T06:25:04.371030+00:00",
+    "created_epoch": 1782195904,
+    "updated_at": "2026-06-23T06:25:04.371037+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [],
+    "evidence": {
+      "source_kind": "decision"
+    }
+  },
+  {
+    "id": "mem:1782195904375",
+    "kind": "stale_marker",
+    "content": "Marked stale because symbol removed",
+    "tags": [],
+    "files": [
+      "hardware/load_test_dashboard.py::_shutdown"
+    ],
+    "file_path": "hardware/load_test_dashboard.py",
+    "symbol_id": "hardware/load_test_dashboard.py::_shutdown",
+    "symbol_hash": "",
+    "created_at": "2026-06-23T06:25:04.371015+00:00",
+    "created_epoch": 1782195904,
+    "updated_at": "2026-06-23T06:25:04.371018+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [],
+    "evidence": {
+      "source_kind": "edit_observation"
+    }
+  },
+  {
+    "id": "mem:1782195904372",
+    "kind": "stale_marker",
+    "content": "Marked stale because symbol removed",
+    "tags": [],
+    "files": [
+      "hardware/dashboard.py::_shutdown"
+    ],
+    "file_path": "hardware/dashboard.py",
+    "symbol_id": "hardware/dashboard.py::_shutdown",
+    "symbol_hash": "",
+    "created_at": "2026-06-23T06:25:04.371002+00:00",
+    "created_epoch": 1782195904,
+    "updated_at": "2026-06-23T06:25:04.371009+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [],
+    "evidence": {
+      "source_kind": "edit_observation"
+    }
+  },
+  {
+    "id": "mem:1782195904378",
+    "kind": "stale_marker",
+    "content": "Marked stale because symbol removed",
+    "tags": [],
+    "files": [
+      "hardware/load_test_dashboard.py::_start_pull"
+    ],
+    "file_path": "hardware/load_test_dashboard.py",
+    "symbol_id": "hardware/load_test_dashboard.py::_start_pull",
+    "symbol_hash": "",
+    "created_at": "2026-06-23T06:25:04.371022+00:00",
+    "created_epoch": 1782195904,
+    "updated_at": "2026-06-25T09:51:10.227371+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [],
+    "evidence": {
+      "source_kind": "decision"
+    }
+  },
+  {
+    "id": "mem:1782196002507",
+    "kind": "query_association",
+    "content": "Queried during: CSV save path summary row SAVE RUN write file",
+    "tags": [
+      "csv",
+      "save",
+      "path",
+      "summary",
+      "row",
+      "run",
+      "write",
+      "file"
+    ],
+    "files": [
+      "hardware/load_test_dashboard.py"
+    ],
+    "file_path": "hardware/load_test_dashboard.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-23T06:26:42.507901+00:00",
+    "created_epoch": 1782196002,
+    "updated_at": "2026-06-23T06:26:42.507922+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [
+      "CSV save path summary row SAVE RUN write file"
+    ],
+    "evidence": {
+      "source": "graph_read",
+      "anchor_mode": "file",
+      "session_epoch": 1782195904
+    }
+  },
+  {
+    "id": "mem:1782196017258",
+    "kind": "query_association",
+    "content": "Queried during: CsvLogger( log_dir os.path.join runs csv filename _save_run summary capacity_n write row open file",
+    "tags": [
+      "csvlogger",
+      "log_dir",
+      "path",
+      "join",
+      "runs",
+      "csv",
+      "filename",
+      "_save_run"
+    ],
+    "files": [
+      "hardware/load_test_dashboard.py"
+    ],
+    "file_path": "hardware/load_test_dashboard.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-23T06:26:57.258352+00:00",
+    "created_epoch": 1782196017,
+    "updated_at": "2026-06-23T06:26:57.258391+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [
+      "CsvLogger( log_dir os.path.join runs csv filename _save_run summary capacity_n write row open file"
+    ],
+    "evidence": {
+      "source": "graph_read",
+      "anchor_mode": "file",
+      "session_epoch": 1782195904
+    }
+  },
+  {
+    "id": "mem:1782196017646",
+    "kind": "query_association",
+    "content": "Queried during: CsvLogger path log_dir default directory filename open write",
+    "tags": [
+      "csvlogger",
+      "path",
+      "log_dir",
+      "default",
+      "directory",
+      "filename",
+      "open",
+      "write"
+    ],
+    "files": [
+      "hardware/logger.py"
+    ],
+    "file_path": "hardware/logger.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-23T06:26:57.646519+00:00",
+    "created_epoch": 1782196017,
+    "updated_at": "2026-06-23T06:26:57.646543+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [
+      "CsvLogger path log_dir default directory filename open write"
+    ],
+    "evidence": {
+      "source": "graph_read",
+      "anchor_mode": "file",
+      "session_epoch": 1782195904
+    }
+  },
+  {
+    "id": "mem:1782205268323",
+    "kind": "query_association",
+    "content": "Queried during: save reading CSV log row condition",
+    "tags": [
+      "save",
+      "reading",
+      "csv",
+      "log",
+      "row",
+      "condition"
+    ],
+    "files": [
+      "hardware/load_test_dashboard.py"
+    ],
+    "file_path": "hardware/load_test_dashboard.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-23T09:01:08.323615+00:00",
+    "created_epoch": 1782205268,
+    "updated_at": "2026-06-23T09:01:08.323642+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [
+      "save reading CSV log row condition"
+    ],
+    "evidence": {
+      "source": "graph_read",
+      "anchor_mode": "file",
+      "session_epoch": 1782205208
+    }
+  },
+  {
+    "id": "mem:1782206272591",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "replaced",
+      "save",
+      "run",
+      "new",
+      "trial",
+      "button",
+      "each",
+      "gets"
+    ],
+    "files": [
+      "hardware/load_test_dashboard.py::_new_trial"
+    ],
+    "file_path": "hardware/load_test_dashboard.py",
+    "symbol_id": "hardware/load_test_dashboard.py::_new_trial",
+    "symbol_hash": "",
+    "created_at": "2026-06-23T09:17:52.590990+00:00",
+    "created_epoch": 1782206272,
+    "updated_at": "2026-06-23T10:35:41.427910+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1782206272588",
+    "kind": "decision",
+    "content": "Replaced SAVE RUN with NEW TRIAL button: each trial gets own trialN CSV, counter resumes from highest trialN in results/ on startup",
+    "tags": [
+      "replaced",
+      "save",
+      "run",
+      "new",
+      "trial",
+      "button",
+      "each",
+      "gets"
+    ],
+    "files": [
+      "hardware/load_test_dashboard.py::_new_trial"
+    ],
+    "file_path": "hardware/load_test_dashboard.py",
+    "symbol_id": "hardware/load_test_dashboard.py::_new_trial",
+    "symbol_hash": "",
+    "created_at": "2026-06-23T09:17:52.588066+00:00",
+    "created_epoch": 1782206272,
+    "updated_at": "2026-06-23T10:35:41.427885+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [],
+    "evidence": {
+      "window_sec": 120,
+      "recent_action_kinds": [],
+      "recent_queries": []
+    }
+  },
+  {
+    "id": "mem:1782210941430",
+    "kind": "stale_marker",
+    "content": "Marked stale because symbol removed",
+    "tags": [],
+    "files": [
+      "hardware/load_test_dashboard.py::_new_trial"
+    ],
+    "file_path": "hardware/load_test_dashboard.py",
+    "symbol_id": "hardware/load_test_dashboard.py::_new_trial",
+    "symbol_hash": "",
+    "created_at": "2026-06-23T10:35:41.427899+00:00",
+    "created_epoch": 1782210941,
+    "updated_at": "2026-06-23T10:35:41.427918+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [],
+    "evidence": {
+      "source_kind": "edit_observation"
+    }
+  },
+  {
+    "id": "mem:1782214858888",
+    "kind": "decision",
+    "content": "Pivoted auto-tension to current-onset detection (slack=clean 0mA; first sustained flicker = engagement; lock onset, confirm via MIN_HITS, spike-reject by distance; rezero at onset, relax back). No curling. Added per-finger default pull_sign (finger A flipped) in config + _build_devices.",
+    "tags": [
+      "pivoted",
+      "auto",
+      "tension",
+      "current",
+      "onset",
+      "detection",
+      "slack",
+      "clean"
+    ],
+    "files": [
+      "hardware/load_test_dashboard.py",
+      "config.py"
+    ],
+    "file_path": "hardware/load_test_dashboard.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-23T11:40:58.888438+00:00",
+    "created_epoch": 1782214858,
+    "updated_at": "2026-06-23T11:40:58.888444+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "window_sec": 120,
+      "recent_action_kinds": [],
+      "recent_queries": []
+    }
+  },
+  {
+    "id": "mem:1782302446742",
+    "kind": "decision",
+    "content": "Replaced load-test auto-tension with stiffness spring-set selector logged per trial",
+    "tags": [
+      "load_test",
+      "stiffness",
+      "dashboard"
+    ],
+    "files": [
+      "hardware/load_test_dashboard.py",
+      "config.py"
+    ],
+    "file_path": "hardware/load_test_dashboard.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-24",
+    "created_epoch": 1782239400,
+    "updated_at": "2026-06-24",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {}
+  },
+  {
+    "id": "mem:1782302445499",
+    "kind": "decision",
+    "content": "Removed auto-tension UI+logic from load test dashboard; added STIFFNESS spring-set selector mapping named configs to (MCP,PIP,DIP) values logged per trial. Added LOAD_TEST_STIFFNESS_CONFIGS/DEFAULT to config; removed TENSION_* constants.",
+    "tags": [
+      "removed",
+      "auto",
+      "tension",
+      "logic",
+      "from",
+      "load",
+      "test",
+      "dashboard"
+    ],
+    "files": [
+      "hardware/load_test_dashboard.py",
+      "config.py"
+    ],
+    "file_path": "hardware/load_test_dashboard.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-24T12:00:45.499114+00:00",
+    "created_epoch": 1782302445,
+    "updated_at": "2026-06-24T12:00:45.499119+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "window_sec": 120,
+      "recent_action_kinds": [],
+      "recent_queries": []
+    }
+  },
+  {
+    "id": "mem:1782306328705",
+    "kind": "decision",
+    "content": "START PULL now opens the trial CSV first and writes a pull_start marker row so every pull is logged (kept NEW TRIAL + stiffness selector). Hardened _selected_stiffness against a missing combo.",
+    "tags": [
+      "start",
+      "pull",
+      "now",
+      "opens",
+      "trial",
+      "csv",
+      "first",
+      "writes"
+    ],
+    "files": [
+      "hardware/load_test_dashboard.py::_start_pull"
+    ],
+    "file_path": "hardware/load_test_dashboard.py",
+    "symbol_id": "hardware/load_test_dashboard.py::_start_pull",
+    "symbol_hash": "",
+    "created_at": "2026-06-24T13:05:28.705664+00:00",
+    "created_epoch": 1782306328,
+    "updated_at": "2026-06-25T09:51:10.227346+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [],
+    "evidence": {
+      "window_sec": 120,
+      "recent_action_kinds": [],
+      "recent_queries": []
+    }
+  },
+  {
+    "id": "mem:1782387181103",
+    "kind": "task",
+    "content": "Ran full stiffness heatmap sweep with object \u00d884mm, aperture 77mm, dL 15mm.",
+    "tags": [
+      "sweep",
+      "heatmap",
+      "load_test",
+      "84mm"
+    ],
+    "files": [
+      "config.py",
+      "gripper/stiffness_sweep.py"
+    ],
+    "file_path": "config.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-25",
+    "created_epoch": 1782325800,
+    "updated_at": "2026-06-25",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {}
+  },
+  {
+    "id": "mem:1782384277403",
+    "kind": "decision",
+    "content": "stiffness_sweep now uses hardware-matched config geometry, MCP splay-init, and a --combos mode.",
+    "tags": [
+      "stiffness_sweep",
+      "combos",
+      "load_test",
+      "config"
+    ],
+    "files": [
+      "gripper/stiffness_sweep.py"
+    ],
+    "file_path": "gripper/stiffness_sweep.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-25",
+    "created_epoch": 1782325800,
+    "updated_at": "2026-06-25",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {}
+  },
+  {
+    "id": "mem:1782383483056",
+    "kind": "decision",
+    "content": "MuJoCo gripper: make tendon moment arm angle-dependent via per-step fixed-tendon coef update",
+    "tags": [
+      "mujoco",
+      "moment-arm",
+      "gripper",
+      "load-test"
+    ],
+    "files": [
+      "finger_model.py",
+      "gripper/interactive_load_test.py",
+      "analytical_model.py"
+    ],
+    "file_path": "finger_model.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-25",
+    "created_epoch": 1782325800,
+    "updated_at": "2026-06-25",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {}
+  },
+  {
+    "id": "mem:1782383486828",
+    "kind": "task",
+    "content": "Hardware-match load test: \u00d880 obj, 77mm aperture, 15mm dL, 18mm backstop, PLA/ducttape friction, 3 stiffness combos",
+    "tags": [
+      "load-test",
+      "gripper",
+      "hardware-match"
+    ],
+    "files": [
+      "gripper/interactive_load_test.py",
+      "gripper/stiffness_sweep.py",
+      "config.py"
+    ],
+    "file_path": "gripper/interactive_load_test.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-25",
+    "created_epoch": 1782325800,
+    "updated_at": "2026-06-25",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {}
+  },
+  {
+    "id": "mem:1782384167074",
+    "kind": "edit_observation",
+    "content": "Edited after query: make MuJoCo fixed-tendon moment arm angle-dependent via helper, call in validation equilibrium loop",
+    "tags": [
+      "added",
+      "angle",
+      "dependent",
+      "fixed",
+      "tendon",
+      "moment",
+      "arm",
+      "helper",
+      "hardware",
+      "match"
+    ],
+    "files": [
+      "high_fidelity/validation.py::mujoco_equilibrium"
+    ],
+    "file_path": "high_fidelity/validation.py",
+    "symbol_id": "high_fidelity/validation.py::mujoco_equilibrium",
+    "symbol_hash": "1cb56473",
+    "created_at": "2026-06-25T10:42:47.074103+00:00",
+    "created_epoch": 1782384167,
+    "updated_at": "2026-06-27T11:35:29.662719+00:00",
+    "stale": true,
+    "stale_reason": "symbol body changed",
+    "observed_queries": [
+      "make MuJoCo fixed-tendon moment arm angle-dependent via helper, call in validation equilibrium loop"
+    ],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [
+        "continue_retrieve",
+        "retrieve"
+      ],
+      "recent_queries": [
+        "make MuJoCo fixed-tendon moment arm angle-dependent via helper, call in validation equilibrium loop"
+      ],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1782384167063",
+    "kind": "decision",
+    "content": "Added angle-dependent fixed-tendon moment-arm helper; called it before mj_step in equilibrium loop",
+    "tags": [
+      "added",
+      "angle",
+      "dependent",
+      "fixed",
+      "tendon",
+      "moment",
+      "arm",
+      "helper"
+    ],
+    "files": [
+      "finger_model.py::update_fixed_tendon_moment_arms",
+      "high_fidelity/validation.py::mujoco_equilibrium"
+    ],
+    "file_path": "finger_model.py",
+    "symbol_id": "finger_model.py::update_fixed_tendon_moment_arms",
+    "symbol_hash": "ab29b208",
+    "created_at": "2026-06-25T10:42:47.063277+00:00",
+    "created_epoch": 1782384167,
+    "updated_at": "2026-06-25T10:43:04.582102+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [
+      "make MuJoCo fixed-tendon moment arm angle-dependent via helper, call in validation equilibrium loop"
+    ],
+    "evidence": {
+      "window_sec": 120,
+      "recent_action_kinds": [
+        "continue_retrieve",
+        "retrieve"
+      ],
+      "recent_queries": [
+        "make MuJoCo fixed-tendon moment arm angle-dependent via helper, call in validation equilibrium loop"
+      ]
+    }
+  },
+  {
+    "id": "mem:1782384167068",
+    "kind": "edit_observation",
+    "content": "Edited after query: make MuJoCo fixed-tendon moment arm angle-dependent via helper, call in validation equilibrium loop",
+    "tags": [
+      "added",
+      "angle",
+      "dependent",
+      "fixed",
+      "tendon",
+      "moment",
+      "arm",
+      "helper",
+      "hardware",
+      "match"
+    ],
+    "files": [
+      "finger_model.py::update_fixed_tendon_moment_arms"
+    ],
+    "file_path": "finger_model.py",
+    "symbol_id": "finger_model.py::update_fixed_tendon_moment_arms",
+    "symbol_hash": "ab29b208",
+    "created_at": "2026-06-25T10:42:47.068570+00:00",
+    "created_epoch": 1782384167,
+    "updated_at": "2026-06-25T10:48:04.833484+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [
+      "make MuJoCo fixed-tendon moment arm angle-dependent via helper, call in validation equilibrium loop"
+    ],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [
+        "continue_retrieve",
+        "retrieve"
+      ],
+      "recent_queries": [
+        "make MuJoCo fixed-tendon moment arm angle-dependent via helper, call in validation equilibrium loop"
+      ],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1782384184586",
+    "kind": "stale_marker",
+    "content": "Marked stale because symbol removed",
+    "tags": [],
+    "files": [
+      "finger_model.py::update_fixed_tendon_moment_arms",
+      "high_fidelity/validation.py::mujoco_equilibrium"
+    ],
+    "file_path": "finger_model.py",
+    "symbol_id": "finger_model.py::update_fixed_tendon_moment_arms",
+    "symbol_hash": "ab29b208",
+    "created_at": "2026-06-25T10:43:04.582137+00:00",
+    "created_epoch": 1782384184,
+    "updated_at": "2026-06-25T10:43:04.582173+00:00",
+    "stale": true,
+    "stale_reason": "symbol removed",
+    "observed_queries": [
+      "make MuJoCo fixed-tendon moment arm angle-dependent via helper, call in validation equilibrium loop"
+    ],
+    "evidence": {
+      "source_kind": "edit_observation"
+    }
+  },
+  {
+    "id": "mem:1782384270239",
+    "kind": "decision",
+    "content": "Pointed SWEEP geometry at hardware-matched config defaults, added MCP splay-init in measure_cell, added run_combos() + --combos CLI mode.",
+    "tags": [
+      "pointed",
+      "sweep",
+      "geometry",
+      "hardware",
+      "matched",
+      "config",
+      "defaults",
+      "added"
+    ],
+    "files": [
+      "gripper/stiffness_sweep.py"
+    ],
+    "file_path": "gripper/stiffness_sweep.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-25T10:44:30.239390+00:00",
+    "created_epoch": 1782384270,
+    "updated_at": "2026-06-25T10:44:30.239396+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [
+      "edit stiffness_sweep.py SWEEP config defaults, splay init, run_combos mode, argparse combos"
+    ],
+    "evidence": {
+      "window_sec": 120,
+      "recent_action_kinds": [
+        "continue_retrieve",
+        "retrieve",
+        "register_edit"
+      ],
+      "recent_queries": [
+        "edit stiffness_sweep.py SWEEP config defaults, splay init, run_combos mode, argparse combos"
+      ]
+    }
+  },
+  {
+    "id": "mem:1782384484855",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "hardware",
+      "match",
+      "mujoco",
+      "gripper",
+      "load",
+      "test",
+      "18mm",
+      "base",
+      "link",
+      "central"
+    ],
+    "files": [
+      "gripper/interactive_load_test.py"
+    ],
+    "file_path": "gripper/interactive_load_test.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-25T10:48:04.855723+00:00",
+    "created_epoch": 1782384484,
+    "updated_at": "2026-06-25T11:04:46.175970+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1782384484846",
+    "kind": "edit_observation",
+    "content": "Edited during active session",
+    "tags": [
+      "hardware",
+      "match",
+      "mujoco",
+      "gripper",
+      "load",
+      "test",
+      "18mm",
+      "base",
+      "link",
+      "central"
+    ],
+    "files": [
+      "gripper/build_gripper.py"
+    ],
+    "file_path": "gripper/build_gripper.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-25T10:48:04.846332+00:00",
+    "created_epoch": 1782384484,
+    "updated_at": "2026-06-25T11:04:46.171549+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "source": "graph_register_edit",
+      "recent_action_kinds": [],
+      "recent_queries": [],
+      "edited": true
+    }
+  },
+  {
+    "id": "mem:1782385486160",
+    "kind": "decision",
+    "content": "Fix base-link/central-block geometry: block was centred on the bases and enclosed the MCP joints. Base link now a 20mm intermediary bar (20 wide x 15 deep) from the MCP hole centre to the block face (INNER_GAP=0); central block front face moved to the link base (GRIPPER_BLOCK_FRONT_X derived, behind the joints); static gripper block hangs a base-link-length below the bases and mount height lifted (0.065) so it clears the floor.",
+    "tags": [
+      "base",
+      "link",
+      "central",
+      "block",
+      "geometry",
+      "was",
+      "centred",
+      "bases"
+    ],
+    "files": [
+      "config.py",
+      "gripper/build_gripper.py",
+      "gripper/interactive_load_test.py"
+    ],
+    "file_path": "config.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-25T11:04:46.160934+00:00",
+    "created_epoch": 1782385486,
+    "updated_at": "2026-06-25T11:04:46.160942+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "window_sec": 120,
+      "recent_action_kinds": [],
+      "recent_queries": []
+    }
+  },
+  {
+    "id": "mem:1782385899956",
+    "kind": "query_association",
+    "content": "Queried during: object diameter aperture deltaL config combos load test",
+    "tags": [
+      "object",
+      "diameter",
+      "aperture",
+      "deltal",
+      "config",
+      "combos",
+      "load",
+      "test"
+    ],
+    "files": [
+      "gripper/interactive_load_test.py"
+    ],
+    "file_path": "gripper/interactive_load_test.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-25T11:11:39.955972+00:00",
+    "created_epoch": 1782385899,
+    "updated_at": "2026-06-25T11:11:39.955995+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [
+      "object diameter aperture deltaL config combos load test"
+    ],
+    "evidence": {
+      "source": "graph_read",
+      "anchor_mode": "file",
+      "session_epoch": 1782381070
+    }
+  },
+  {
+    "id": "mem:1782385899051",
+    "kind": "query_association",
+    "content": "Queried during: run_combos sweep stiffness object diameter aperture deltaL heatmap",
+    "tags": [
+      "run_combos",
+      "sweep",
+      "stiffness",
+      "object",
+      "diameter",
+      "aperture",
+      "deltal",
+      "heatmap"
+    ],
+    "files": [
+      "gripper/stiffness_sweep.py"
+    ],
+    "file_path": "gripper/stiffness_sweep.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-25T11:11:39.051040+00:00",
+    "created_epoch": 1782385899,
+    "updated_at": "2026-06-25T11:11:39.051073+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [
+      "run_combos sweep stiffness object diameter aperture deltaL heatmap"
+    ],
+    "evidence": {
+      "source": "graph_read",
+      "anchor_mode": "file",
+      "session_epoch": 1782381070
+    }
+  },
+  {
+    "id": "mem:1782385900127",
+    "kind": "query_association",
+    "content": "Queried during: object diameter aperture deltaL stiffness combos sweep geometry",
+    "tags": [
+      "object",
+      "diameter",
+      "aperture",
+      "deltal",
+      "stiffness",
+      "combos",
+      "sweep",
+      "geometry"
+    ],
+    "files": [
+      "config.py"
+    ],
+    "file_path": "config.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-25T11:11:40.127538+00:00",
+    "created_epoch": 1782385900,
+    "updated_at": "2026-06-25T11:11:40.127547+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [
+      "object diameter aperture deltaL stiffness combos sweep geometry"
+    ],
+    "evidence": {
+      "source": "graph_read",
+      "anchor_mode": "file",
+      "session_epoch": 1782381070
+    }
+  },
+  {
+    "id": "mem:1782386059794",
+    "kind": "decision",
+    "content": "Set LOAD_TEST_OBJECT_DIAMETER_MM to 84mm for new stiffness sweep heatmap (aperture 77, dL 15 unchanged)",
+    "tags": [
+      "set",
+      "load_test_object_diameter_mm",
+      "84mm",
+      "new",
+      "stiffness",
+      "sweep",
+      "heatmap",
+      "aperture"
+    ],
+    "files": [
+      "config.py"
+    ],
+    "file_path": "config.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-25T11:14:19.794492+00:00",
+    "created_epoch": 1782386059,
+    "updated_at": "2026-06-25T11:14:19.794503+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "window_sec": 120,
+      "recent_action_kinds": [],
+      "recent_queries": []
+    }
+  },
+  {
+    "id": "mem:1782387181102",
+    "kind": "decision",
+    "content": "Friction study: ran sweep at effective mu=0.25 (PLA+ducttape both 0.25), saved _mu0.25/_mu0.50 variants, reverted config to 0.4/0.5",
+    "tags": [
+      "friction",
+      "study",
+      "ran",
+      "sweep",
+      "effective",
+      "pla",
+      "ducttape",
+      "both"
+    ],
+    "files": [
+      "config.py"
+    ],
+    "file_path": "config.py",
+    "symbol_id": "",
+    "symbol_hash": "",
+    "created_at": "2026-06-25T11:33:01.102739+00:00",
+    "created_epoch": 1782387181,
+    "updated_at": "2026-06-25T11:33:01.102746+00:00",
+    "stale": false,
+    "stale_reason": "",
+    "observed_queries": [],
+    "evidence": {
+      "window_sec": 120,
+      "recent_action_kinds": [],
+      "recent_queries": []
+    }
+  },
+  {
+    "id": "mem:1782560129665",
+    "kind": "stale_marker",
+    "content": "Marked stale because symbol body changed",
+    "tags": [],
+    "files": [
+      "high_fidelity/validation.py::mujoco_equilibrium"
+    ],
+    "file_path": "high_fidelity/validation.py",
+    "symbol_id": "high_fidelity/validation.py::mujoco_equilibrium",
+    "symbol_hash": "1cb56473",
+    "created_at": "2026-06-27T11:35:29.662698+00:00",
+    "created_epoch": 1782560129,
+    "updated_at": "2026-06-27T11:35:29.662725+00:00",
+    "stale": true,
+    "stale_reason": "symbol body changed",
+    "observed_queries": [
+      "link weights springs",
+      "make MuJoCo fixed-tendon moment arm angle-dependent via helper, call in validation equilibrium loop"
+    ],
+    "evidence": {
+      "source_kind": "edit_observation"
+    }
+  }
+]

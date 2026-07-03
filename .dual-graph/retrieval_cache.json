@@ -1,0 +1,211 @@
+{
+  "entries": {
+    "dual graph network existing create new|tf=5|te=12": {
+      "created_epoch": 1782651644,
+      "files": [
+        "high_fidelity/generate_tables.py::try_load_existing_10mm",
+        "analytical_model.py::analytical_angles_deg",
+        "finger_model.py::build_fidelity_xml",
+        "gripper/build_gripper.py::generate_gripper_xml",
+        "gripper/capstan/capstan_load_test.py::apply_capstan_friction"
+      ],
+      "mtimes_ns": {
+        "high_fidelity/generate_tables.py::try_load_existing_10mm": 1780659990038329486,
+        "analytical_model.py::analytical_angles_deg": 1781601091353121574,
+        "finger_model.py::build_fidelity_xml": 1782497507289623222,
+        "gripper/build_gripper.py::generate_gripper_xml": 1782497507290210474,
+        "gripper/capstan/capstan_load_test.py::apply_capstan_friction": 1782474376333287749
+      },
+      "result": {
+        "ok": true,
+        "query": "dual graph network existing or create new",
+        "graph_files": [
+          {
+            "id": "high_fidelity/generate_tables.py::try_load_existing_10mm",
+            "kind": "symbol",
+            "path": "high_fidelity/generate_tables.py",
+            "ext": ".py",
+            "size": 26,
+            "keywords": [
+              "try_load_existing_10mm",
+              "try",
+              "load",
+              "existing",
+              "10mm"
+            ],
+            "symbol_type": "use_case",
+            "name": "try_load_existing_10mm",
+            "line_start": 111,
+            "line_end": 136,
+            "body_hash": "24d42bb0",
+            "confidence": "high",
+            "exported": true,
+            "_score": 16,
+            "_role": "code",
+            "_intent": "feature"
+          },
+          {
+            "id": "analytical_model.py::analytical_angles_deg",
+            "kind": "symbol",
+            "path": "analytical_model.py",
+            "ext": ".py",
+            "size": 54,
+            "keywords": [
+              "analytical_angles_deg",
+              "analytical",
+              "angles",
+              "deg"
+            ],
+            "symbol_type": "use_case",
+            "name": "analytical_angles_deg",
+            "line_start": 168,
+            "line_end": 221,
+            "body_hash": "91003fa2",
+            "confidence": "high",
+            "exported": true,
+            "_score": 11,
+            "_role": "code",
+            "_intent": "feature"
+          },
+          {
+            "id": "finger_model.py::build_fidelity_xml",
+            "kind": "symbol",
+            "path": "finger_model.py",
+            "ext": ".py",
+            "size": 61,
+            "keywords": [
+              "build_fidelity_xml",
+              "build",
+              "fidelity",
+              "xml"
+            ],
+            "symbol_type": "use_case",
+            "name": "build_fidelity_xml",
+            "line_start": 54,
+            "line_end": 114,
+            "body_hash": "64583b8d",
+            "confidence": "high",
+            "exported": true,
+            "_score": 11,
+            "_role": "code",
+            "_intent": "feature"
+          },
+          {
+            "id": "gripper/build_gripper.py::generate_gripper_xml",
+            "kind": "symbol",
+            "path": "gripper/build_gripper.py",
+            "ext": ".py",
+            "size": 148,
+            "keywords": [
+              "generate_gripper_xml",
+              "generate",
+              "gripper",
+              "xml"
+            ],
+            "symbol_type": "use_case",
+            "name": "generate_gripper_xml",
+            "line_start": 178,
+            "line_end": 325,
+            "body_hash": "7adaf8d3",
+            "confidence": "high",
+            "exported": true,
+            "_score": 11,
+            "_role": "code",
+            "_intent": "feature"
+          },
+          {
+            "id": "gripper/capstan/capstan_load_test.py::apply_capstan_friction",
+            "kind": "symbol",
+            "path": "gripper/capstan/capstan_load_test.py",
+            "ext": ".py",
+            "size": 27,
+            "keywords": [
+              "apply_capstan_friction",
+              "apply",
+              "capstan",
+              "friction"
+            ],
+            "symbol_type": "use_case",
+            "name": "apply_capstan_friction",
+            "line_start": 51,
+            "line_end": 77,
+            "body_hash": "53bbbd3e",
+            "confidence": "high",
+            "exported": true,
+            "_score": 11,
+            "_role": "code",
+            "_intent": "feature"
+          }
+        ],
+        "graph_edges": [
+          {
+            "from": "high_fidelity/generate_tables.py",
+            "to": "high_fidelity/generate_tables.py::try_load_existing_10mm",
+            "rel": "contains"
+          },
+          {
+            "from": "CODEX.md",
+            "to": "dual-graph-context/PROJECT_CONTEXT.md",
+            "rel": "references"
+          },
+          {
+            "from": "CODEX.md",
+            "to": "dual-graph-context/SESSION_CONTEXT.md",
+            "rel": "references"
+          },
+          {
+            "from": "analytical_model.py",
+            "to": "analytical_model.py::analytical_angles_deg",
+            "rel": "contains"
+          },
+          {
+            "from": "finger_model.py",
+            "to": "finger_model.py::build_fidelity_xml",
+            "rel": "contains"
+          },
+          {
+            "from": "gripper/build_gripper.py",
+            "to": "gripper/build_gripper.py::generate_gripper_xml",
+            "rel": "contains"
+          },
+          {
+            "from": "gripper/capstan/capstan_load_test.py",
+            "to": "gripper/capstan/capstan_load_test.py::apply_capstan_friction",
+            "rel": "contains"
+          },
+          {
+            "from": "analytical_model.py",
+            "to": "config",
+            "rel": "imports"
+          },
+          {
+            "from": "analytical_model.py",
+            "to": "mujoco",
+            "rel": "imports"
+          },
+          {
+            "from": "analytical_model.py",
+            "to": "numpy",
+            "rel": "imports"
+          },
+          {
+            "from": "analytical_model.py",
+            "to": "os",
+            "rel": "imports"
+          },
+          {
+            "from": "analytical_model.py",
+            "to": "scipy.interpolate",
+            "rel": "imports"
+          }
+        ],
+        "grep_hits": [],
+        "reuse_candidates": [],
+        "read_budget": {
+          "remaining_chars": 60000,
+          "reuse_gate_candidates": []
+        }
+      }
+    }
+  }
+}

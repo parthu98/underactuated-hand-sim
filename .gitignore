@@ -39,6 +39,7 @@ high_fidelity/finger.xml
 high_fidelity/_finger_fidelity.xml
 gripper/gripper.xml
 gripper/load_test.xml
-.dual-graph/
-.dual-graph-context/
+
+# Dual-graph runtime logs only — graph data itself is tracked for cross-machine sync
+.dual-graph/run/
 PROJECT_MEMORY.md
