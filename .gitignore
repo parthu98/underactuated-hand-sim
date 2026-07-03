@@ -40,6 +40,21 @@ high_fidelity/_finger_fidelity.xml
 gripper/gripper.xml
 gripper/load_test.xml
 
-# Dual-graph runtime logs only — graph data itself is tracked for cross-machine sync
+# Dual-graph: track only the cross-session memory (context-store.json) and the
+# prime/stop scripts. The scanned graph and per-session logs/caches are regenerated
+# by graph_scan — ignore them so they don't churn the tree every session.
 .dual-graph/run/
+.dual-graph/info_graph.json
+.dual-graph/symbol_index.json
+.dual-graph/graph.dot
+.dual-graph/graph.svg
+.dual-graph/graph_internal.dot
+.dual-graph/graph_internal.svg
+.dual-graph/chat_action_graph.json
+.dual-graph/mcp_tool_calls.jsonl
+.dual-graph/token_log.jsonl
+.dual-graph/retrieval_cache.json
 PROJECT_MEMORY.md
+
+# GitHub refresh trigger marker (not source)
+.github_refresh

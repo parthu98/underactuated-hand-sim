@@ -1000,6 +1000,55 @@
     {
       "id": "gripper/capstan/capstan_load_test.py::apply_capstan_friction",
       "type": "file"
+    },
+    {
+      "id": "query:prompt opus rework project remove redundant code files",
+      "type": "query",
+      "meta": {
+        "text": "prompt for opus to rework project: remove redundant code/files/methods, update central AGENTS.md context file, fix inconsistencies, make things uniform"
+      }
+    },
+    {
+      "id": "motion capture test files/owl.py::Context",
+      "type": "file"
+    },
+    {
+      "id": "motion capture test files/rigid_body_tracker.py::MoCap",
+      "type": "file"
+    },
+    {
+      "id": "mocap/owl.py::Context",
+      "type": "file"
+    },
+    {
+      "id": "query:audit repository duplicate files superseded configs methods doc",
+      "type": "query",
+      "meta": {
+        "text": "Audit repository for duplicate files, superseded configs/methods, doc inconsistencies across AGENTS/CLAUDE/GEMINI/copilot, and tracked generated noise. mocap vs motion capture test files, TENSION vs LOAD_TEST_STIFFNESS_CONFIGS, dual-graph tracked files."
+      }
+    },
+    {
+      "id": "motion capture test files/owl.py::Camera",
+      "type": "file"
+    },
+    {
+      "id": "motion capture test files/mocap_marker_readings.py",
+      "type": "file"
+    },
+    {
+      "id": "motion capture test files/rigid_body_tracker_test.py",
+      "type": "file"
+    },
+    {
+      "id": "action:edit:1783118214",
+      "type": "action",
+      "meta": {
+        "summary": "Cleanup: deleted stale 'motion capture test files/'; slimmed GEMINI/copilot to AGENTS.md pointers; de-duped CLAUDE.md dual-graph policy; fixed AGENTS.md header/gripper/mocap lines"
+      }
+    },
+    {
+      "id": "CLAUDE.md",
+      "type": "file"
     }
   ],
   "edges": [
@@ -3084,6 +3133,90 @@
       "to": "gripper/capstan/capstan_load_test.py::apply_capstan_friction",
       "rel": "retrieved",
       "ts": 1782651644
+    },
+    {
+      "from": "query:prompt opus rework project remove redundant code files",
+      "to": "motion capture test files/owl.py::Context",
+      "rel": "retrieved",
+      "ts": 1783116520
+    },
+    {
+      "from": "query:prompt opus rework project remove redundant code files",
+      "to": "motion capture test files/rigid_body_tracker.py::MoCap",
+      "rel": "retrieved",
+      "ts": 1783116520
+    },
+    {
+      "from": "query:prompt opus rework project remove redundant code files",
+      "to": "mocap/owl.py::Context",
+      "rel": "retrieved",
+      "ts": 1783116520
+    },
+    {
+      "from": "query:prompt opus rework project remove redundant code files",
+      "to": "hardware/load_cell.py::list_serial_ports",
+      "rel": "retrieved",
+      "ts": 1783116520
+    },
+    {
+      "from": "query:prompt opus rework project remove redundant code files",
+      "to": "hardware/servo.py::list_serial_ports",
+      "rel": "retrieved",
+      "ts": 1783116520
+    },
+    {
+      "from": "query:audit repository duplicate files superseded configs methods doc",
+      "to": "motion capture test files/rigid_body_tracker.py::MoCap",
+      "rel": "retrieved",
+      "ts": 1783116690
+    },
+    {
+      "from": "query:audit repository duplicate files superseded configs methods doc",
+      "to": "motion capture test files/owl.py::Camera",
+      "rel": "retrieved",
+      "ts": 1783116690
+    },
+    {
+      "from": "query:audit repository duplicate files superseded configs methods doc",
+      "to": "motion capture test files/mocap_marker_readings.py",
+      "rel": "retrieved",
+      "ts": 1783116690
+    },
+    {
+      "from": "query:audit repository duplicate files superseded configs methods doc",
+      "to": "motion capture test files/rigid_body_tracker_test.py",
+      "rel": "retrieved",
+      "ts": 1783116690
+    },
+    {
+      "from": "query:audit repository duplicate files superseded configs methods doc",
+      "to": "gripper/interactive_load_test.py",
+      "rel": "retrieved",
+      "ts": 1783116690
+    },
+    {
+      "from": "action:edit:1783118214",
+      "to": "AGENTS.md",
+      "rel": "edited",
+      "ts": 1783118214
+    },
+    {
+      "from": "action:edit:1783118214",
+      "to": "CLAUDE.md",
+      "rel": "edited",
+      "ts": 1783118214
+    },
+    {
+      "from": "action:edit:1783118214",
+      "to": "GEMINI.md",
+      "rel": "edited",
+      "ts": 1783118214
+    },
+    {
+      "from": "action:edit:1783118214",
+      "to": ".github/copilot-instructions.md",
+      "rel": "edited",
+      "ts": 1783118214
     }
   ],
   "files": {
@@ -3263,8 +3396,9 @@
       "cached_content": "# Project Context \u2014 Shared Across All AI Agents\n\n> **Canonical instructions file.** Claude, Gemini, Codex, and Copilot all read this.\n> Tool-specific files (`CLAUDE.md`, `CODEX.md`) reference this file and add only\n> their own mechanics on top. Edit shared rules HERE \u2014 not in the per-tool files.\n\nTh",
       "cached_chars": 5050,
       "cached_tokens_est": 1262,
-      "last_action": "read",
-      "last_ts": 1781266296
+      "last_action": "edited",
+      "last_ts": "2026-07-03T22:36:54.699538+00:00",
+      "edited_count": 1
     },
     "presentation/PROJECT_SUMMARY.md": {
       "last_action": "edited",
@@ -3409,13 +3543,13 @@
     },
     "GEMINI.md": {
       "last_action": "edited",
-      "last_ts": "2026-06-22T07:06:38.673382+00:00",
-      "edited_count": 1
+      "last_ts": "2026-07-03T22:36:54.699565+00:00",
+      "edited_count": 2
     },
     ".github/copilot-instructions.md": {
       "last_action": "edited",
-      "last_ts": "2026-06-22T07:06:38.673404+00:00",
-      "edited_count": 1
+      "last_ts": "2026-07-03T22:36:54.699572+00:00",
+      "edited_count": 2
     },
     "CONTEXT.md": {
       "last_action": "edited",
@@ -3522,6 +3656,11 @@
       "last_action": "edited",
       "last_ts": "2026-06-25T10:48:04.823177+00:00",
       "edited_count": 2
+    },
+    "CLAUDE.md": {
+      "last_action": "edited",
+      "last_ts": "2026-07-03T22:36:54.699557+00:00",
+      "edited_count": 1
     }
   },
   "actions": [
@@ -4768,17 +4907,48 @@
         "kind": "continue_retrieve",
         "query": "dual graph network existing or create new"
       }
+    },
+    {
+      "ts": 1783116520,
+      "kind": "retrieve",
+      "payload": {
+        "kind": "retrieve",
+        "query": "prompt for opus to rework project: remove redundant code/files/methods, update central AGENTS.md context file, fix inconsistencies, make things uniform"
+      }
+    },
+    {
+      "ts": 1783116520,
+      "kind": "continue_retrieve",
+      "payload": {
+        "kind": "continue_retrieve",
+        "query": "prompt for opus to rework project: remove redundant code/files/methods, update central AGENTS.md context file, fix inconsistencies, make things uniform"
+      }
+    },
+    {
+      "ts": 1783116690,
+      "kind": "retrieve",
+      "payload": {
+        "kind": "retrieve",
+        "query": "Audit repository for duplicate files, superseded configs/methods, doc inconsistencies across AGENTS/CLAUDE/GEMINI/copilot, and tracked generated noise. mocap vs motion capture test files, TENSION vs LOAD_TEST_STIFFNESS_CONFIGS, dual-graph tracked files."
+      }
+    },
+    {
+      "ts": 1783116690,
+      "kind": "continue_retrieve",
+      "payload": {
+        "kind": "continue_retrieve",
+        "query": "Audit repository for duplicate files, superseded configs/methods, doc inconsistencies across AGENTS/CLAUDE/GEMINI/copilot, and tracked generated noise. mocap vs motion capture test files, TENSION vs LOAD_TEST_STIFFNESS_CONFIGS, dual-graph tracked files."
+      }
+    },
+    {
+      "ts": 1783118214,
+      "kind": "register_edit",
+      "payload": {
+        "kind": "register_edit"
+      }
     }
   ],
   "decisions": [
-    {
-      "ts": 1782112969,
-      "summary": "Load test now uses ONE U2D2 for all three servos: pull servo attaches to the shared finger bus via new _ensure_bus(); dropped --pull-port",
-      "files": [
-        "hardware/load_test_dashboard.py"
-      ],
-      "scope": "file"
-    },
     {
       "ts": 1782118698,
       "summary": "Load cell readouts now metric: stream stays lbf->N, secondary display switched from lb to kg via new config.KGF_TO_N (9.80665)",
@@ -4950,6 +5120,17 @@
         "config.py"
       ],
       "scope": "file"
+    },
+    {
+      "ts": 1783118214,
+      "summary": "Cleanup: deleted stale 'motion capture test files/'; slimmed GEMINI/copilot to AGENTS.md pointers; de-duped CLAUDE.md dual-graph policy; fixed AGENTS.md header/gripper/mocap lines",
+      "files": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        "GEMINI.md",
+        ".github/copilot-instructions.md"
+      ],
+      "scope": "global"
     }
   ],
   "decisions_archive": "Added linear angle-dependent tendon moment arm (7mm@0deg -> 12mm@90deg) to analytical model via Picard fixed-point; constant-arm path commented out as fallback; config flag MOMENT_ARM_ANGLE_DEPENDENT; New reusable HW-validation analysis tool: pick dataset by substring/path/latest, cleans (drop \u0394L=0,"
