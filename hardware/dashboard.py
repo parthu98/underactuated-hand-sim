@@ -770,6 +770,10 @@ class Dashboard(QMainWindow):
 
     def _flip_sign(self):
         self.joints.set_flexion_sign(-self.joints.flexion_sign)
+        # Keep the stick-figure preview (mocap tracker only) mirrored to match,
+        # so the picture curls the same way the logged/plotted angles now read.
+        if hasattr(self.cam, "flexion_sign"):
+            self.cam.flexion_sign = self.joints.flexion_sign
         QMessageBox.information(self, "θ sign",
                                 f"flexion_sign = {self.joints.flexion_sign} "
                                 f"(flexion should read positive).")
