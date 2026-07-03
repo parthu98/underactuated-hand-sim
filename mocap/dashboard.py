@@ -276,6 +276,7 @@ def main():
         slave=(not args.no_slave) and mcfg.MOCAP_SLAVE,
         vertical_axis=mcfg.MOCAP_VERTICAL_AXIS,
         vertical_sign=mcfg.MOCAP_VERTICAL_SIGN,
+        flexion_sign=mcfg.MOCAP_FLEXION_SIGN,
     )
     if args.mock or args.mock_servo:
         servo = MockServo(spool_radius_m=args.spool_radius)
