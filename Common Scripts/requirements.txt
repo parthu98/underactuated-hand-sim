@@ -1,0 +1,15 @@
+# Minimal, self-contained environment for the finger-sweep video analysis
+# pipeline (see README.md). Deliberately excludes the main repo's
+# hardware/simulation-only deps (pyrealsense2, dynamixel-sdk, PySide6, mujoco)
+# since this pipeline never touches them.
+
+opencv-contrib-python>=4.7
+numpy>=1.23
+matplotlib>=3.7
+scipy>=1.7
+SciencePlots>=2.1.1
+
+# Standalone ffmpeg binary (bundles libx264) used by video_writer.FFmpegWriter.
+# OpenCV's own FFmpeg plugin can only reach H.264 via Cisco's OpenH264 DLL,
+# which has no CRF/bitrate control here -- see video_writer.py.
+imageio-ffmpeg>=0.5
