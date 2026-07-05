@@ -39,8 +39,8 @@ The high-fidelity finger model is the foundation for the two-finger gripper work
 
 ## Repository layout
 
-Folders with their own `README.md` (`gripper/`, `hardware/`, `mocap/`, `legacy/`) carry
-the in-folder detail; the tree below is the one-line map.
+Folders with their own `README.md` (`gripper/`, `hardware/`, `mocap/`, `legacy/`,
+`Common Scripts/`) carry the in-folder detail; the tree below is the one-line map.
 
 ```text
 underactuated_finger/
@@ -91,6 +91,17 @@ underactuated_finger/
 │   └── sweep_results/ · capstan/results/   # Generated heatmaps + CSVs
 │
 ├── legacy/                  # Initial low-fidelity model + early research outputs (reference)
+│
+├── Common Scripts/          # Markerless CV pipeline: joint angles + fingertip trajectory
+│   │                        #   from finger-sweep video, for the RAL 2026 paper. Fully
+│   │                        #   self-contained (own venv/requirements.txt) -- doesn't touch
+│   │                        #   config.py or the MuJoCo stack. See Common Scripts/README.md.
+│   ├── track_points.py          # The one interactive step: click 5 points, LK-track 4,
+│   │                            #   derive the tip via a per-frame tip-cap circle fit
+│   ├── render_joint_overlay.py / render_tip_trajectory.py / render_angle_chart.py
+│   ├── geometry.py · video_writer.py · run_all.py · dashboard.py · _bootstrap.py
+│   └── Finger Sweep Videos/     # Auto-created locally (raw videos in, everything else
+│                                #   generated), git-ignored -- see the dataset on Drive
 │
 └── .dual-graph/             # Local dual-graph MCP context store (cross-session memory);
                              #   the regenerated graph + per-session logs are git-ignored
