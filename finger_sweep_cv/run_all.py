@@ -22,6 +22,9 @@ Usage:
     python run_all.py                          # process every case in raw\
     python run_all.py --only uniform_medium__20260702_182515
     python run_all.py --skip-tracking          # reuse an existing cache per case
+    python run_all.py --video "C:\path\to\some_video.mp4" --label "My new case"
+                                                # ingest a video from anywhere on
+                                                # disk (copied into raw\ first)
 """
 
 from __future__ import annotations
@@ -31,6 +34,7 @@ ensure_venv()
 
 import argparse
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -43,8 +47,8 @@ VIDEOS_DIR = Path(os.environ.get("FINGER_SWEEP_DATA_ROOT", SCRIPTS_DIR / "Finger
 # just labeled by its own filename stem (see discover_cases()).
 CASES = {
     "uniform_medium__20260702_182515": "Uniform medium",
-    "medium_hard_proximal_dominant__20260702_185711": "Medium-hard (proximal-dominant)",
-    "hard_medium_distal_dominant__20260702_190423": "Hard-medium (distal-dominant)",
+    "hard_medium_distal_dominant__20260702_185711": "Hard-medium (distal-dominant)",
+    "medium_hard_proximal_dominant__20260702_190423": "Medium-hard (proximal-dominant)",
 }
 
 # Every generated subfolder under VIDEOS_DIR -- created on demand so a fresh
@@ -81,10 +85,37 @@ def discover_cases() -> tuple[list[str], dict[str, str], list[str]]:
 
 def parse_args():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--only", default=None, help="Process only this case stem (default: all).")
+    group = p.add_mutually_exclusive_group()
+    group.add_argument("--only", default=None, help="Process only this case stem (default: all).")
+    group.add_argument("--video", type=Path, default=None,
+                        help="Path to a video file anywhere on disk to ingest as a new "
+                             "case (copied into raw\\ under its own filename stem, then "
+                             "processed like any other case).")
+    p.add_argument("--label", default=None,
+                    help="Human-readable label for --video's progress-print header "
+                         "(optional; defaults to the filename stem).")
     p.add_argument("--skip-tracking", action="store_true",
                     help="Reuse an existing tracking cache instead of re-running the click UI.")
     return p.parse_args()
+
+
+def ingest_video(video_path: Path) -> str:
+    """Copy an arbitrary video into VIDEOS_DIR/raw (if not already there) and
+    return its stem, so it can be processed like any other case."""
+    if not video_path.is_file():
+        sys.exit(f"--video: no such file: {video_path}")
+    if video_path.suffix.lower() != ".mp4":
+        sys.exit(f"--video: expected a .mp4 file, got: {video_path}")
+
+    stem = video_path.stem
+    dest = VIDEOS_DIR / "raw" / f"{stem}.mp4"
+    if dest.exists() and dest.resolve() != video_path.resolve():
+        sys.exit(f"--video: a raw video already exists at {dest} -- rename your "
+                  f"input or remove the existing one first.")
+    if not dest.exists():
+        shutil.copy2(video_path, dest)
+        print(f"[info] copied {video_path} -> {dest}")
+    return stem
 
 
 def build_paths(stem: str) -> dict:
@@ -173,7 +204,10 @@ def process_case(stem, args, label=None):
 
 def main():
     args = parse_args()
-    if args.only:
+    if args.video:
+        stem = ingest_video(args.video)
+        stems, labels = [stem], {stem: args.label} if args.label else CASES
+    elif args.only:
         stems, labels = [args.only], CASES
     else:
         stems, labels, warnings = discover_cases()

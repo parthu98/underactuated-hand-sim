@@ -3,7 +3,7 @@
 Import and call ensure_venv() as the very first statement -- before any
 third-party import (cv2, numpy, matplotlib, ...) -- in every entry-point
 script in this folder. If the current interpreter isn't the dedicated
-Common Scripts\\.venv, this transparently re-execs the same script (same
+finger_sweep_cv\\.venv, this transparently re-execs the same script (same
 argv) under that venv's python, so it doesn't matter whether the script was
 launched via an IDE's Run button, a raw double-click, or a bare
 `python foo.py` in an unactivated shell.
