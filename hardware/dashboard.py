@@ -75,19 +75,20 @@ DELTA_PRESETS = (0.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 40.0)  # mm, in t
 TICK_MS = 50  # 20 Hz main loop
 
 # Spring sets are built ONLY from the springs installed in config.py
-# (SPRING_1/2/3 = large/medium/small) — no arbitrary stiffness values. Selecting
-# a preset fills and LOCKS k_mcp/k_pip/k_dip to those config values; the single
-# "custom" entry unlocks the fields for trying something out of the ordinary.
-# "uniform_*" gives one set per installed spring; the dominant sets soften the
-# named joint (smallest k) so it bends the most. (k_vec order: mcp, pip, dip.)
-_SPRING_L, _SPRING_M, _SPRING_S = config.SPRING_1, config.SPRING_2, config.SPRING_3
+# (SPRING_1/2 = hard/medium; only these two are in use in recent hardware
+# trials) — no arbitrary stiffness values. Selecting a preset fills and LOCKS
+# k_mcp/k_pip/k_dip to those config values; the single "custom" entry unlocks
+# the fields for trying something out of the ordinary.
+# "uniform_medium" is the one all-installed-springs-equal baseline. The
+# dominant sets put the HARD spring (largest k) at the named joint so IT is
+# stiffest — PIP is always the fixed/spectator joint at medium stiffness in
+# both. (k_vec order: mcp, pip, dip.)
+_SPRING_L, _SPRING_M = config.SPRING_1, config.SPRING_2
 SPRING_PRESETS = {
     "custom":            None,
-    "uniform_large":     (_SPRING_L, _SPRING_L, _SPRING_L),
     "uniform_medium":    (_SPRING_M, _SPRING_M, _SPRING_M),
-    "uniform_small":     (_SPRING_S, _SPRING_S, _SPRING_S),
-    "proximal_dominant": (_SPRING_S, _SPRING_M, _SPRING_M),
-    "distal_dominant":   (_SPRING_M, _SPRING_M, _SPRING_S),
+    "proximal_dominant": (_SPRING_L, _SPRING_M, _SPRING_M),
+    "distal_dominant":   (_SPRING_M, _SPRING_M, _SPRING_L),
 }
 
 # Set-Zero / Capture averaging: the ArUco in-plane angles jitter a few degrees

@@ -161,7 +161,7 @@ def run_combos(mu=CAPSTAN_MU):
     print()
 
     # Hardware reference
-    hw = {"Uniform": 12.8, "stiff→soft": 3.0, "soft→stiff": 6.6}
+    hw = {"Uniform": 12.8, "Proximal-dominant": 3.0, "Distal-dominant": 6.6}
 
     rows = []
     for name in combos:
@@ -200,7 +200,7 @@ def sweep_mu():
     combos = config.LOAD_TEST_STIFFNESS_COMBOS
     configs = config.LOAD_TEST_STIFFNESS_CONFIGS
     mu_values = [0.00, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30]
-    hw = {"Uniform": 12.8, "stiff→soft": 3.0, "soft→stiff": 6.6}
+    hw = {"Uniform": 12.8, "Proximal-dominant": 3.0, "Distal-dominant": 6.6}
 
     print(f"{'='*72}")
     print(f"MU SWEEP — 3 combos x {len(mu_values)} mu values")

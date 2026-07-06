@@ -42,9 +42,9 @@ SATURATION_TOL = config.SATURATION_TOL
 
 # Three named regimes matching the paper
 REGIMES = [
-    ("Proximal-dominant", SPRING_3, SPRING_2, SPRING_2),
+    ("Proximal-dominant", SPRING_1, SPRING_2, SPRING_2),
     ("Uniform",           SPRING_2, SPRING_2, SPRING_2),
-    ("Distal-dominant",   SPRING_2, SPRING_2, SPRING_3),
+    ("Distal-dominant",   SPRING_2, SPRING_2, SPRING_1),
 ]
 
 # ΔL values for Table IV

@@ -61,9 +61,9 @@ SPRING_2 = config.SPRING_2  # medium - used as k2 reference
 SPRING_3 = config.SPRING_3  # small
 
 K2_BASE = SPRING_2
-RHO_LOW = SPRING_3 / K2_BASE   # ≈ 0.2416
+RHO_LOW = SPRING_3 / K2_BASE   # ≈ 0.3210
 RHO_MID = SPRING_2 / K2_BASE   # = 1.0000
-RHO_HIGH = SPRING_1 / K2_BASE  # ≈ 5.4789
+RHO_HIGH = SPRING_1 / K2_BASE  # ≈ 2.5926
 
 # Physics-fidelity model parameters live in finger_model (itself sourced from
 # config). Override per-call via finger_model.load_fidelity_model(moment_arm=…).
@@ -440,12 +440,12 @@ def _draw_finger(ax, angles_deg, color, label, linestyle='-', alpha=1.0,
 
 REGIMES = [
     # (label_short, label_full, k1, k2, k3)
-    ("proximal", "Proximal-dominant\n$\\rho_1\\!\\approx\\!0.24,\\ \\rho_3\\!=\\!1$",
-     SPRING_3, SPRING_2, SPRING_2),
+    ("proximal", f"Proximal-dominant\n$\\rho_1\\!\\approx\\!{RHO_HIGH:.2f},\\ \\rho_3\\!=\\!1$",
+     SPRING_1, SPRING_2, SPRING_2),
     ("uniform",  "Uniform\n$\\rho_1\\!=\\!1,\\ \\rho_3\\!=\\!1$",
      SPRING_2, SPRING_2, SPRING_2),
-    ("distal",   "Distal-dominant\n$\\rho_1\\!=\\!1,\\ \\rho_3\\!\\approx\\!0.24$",
-     SPRING_2, SPRING_2, SPRING_3),
+    ("distal",   f"Distal-dominant\n$\\rho_1\\!=\\!1,\\ \\rho_3\\!\\approx\\!{RHO_HIGH:.2f}$",
+     SPRING_2, SPRING_2, SPRING_1),
 ]
 
 
