@@ -140,9 +140,12 @@ LIMIT_SOLIMP = "0.99 0.9999 0.0001 0.5 2"
 # 5. HARDWARE SPRINGS — measured torsional stiffnesses [N·m/rad].
 #    Spring 2 is the reference k2 for the ρ ratios in the validation sweep.
 # =====================================================================
-SPRING_1 = 0.789   # large
-SPRING_2 = 0.165   # medium — reference k2
-SPRING_3 = 0.072   # small
+SPRING_1 = 2.10    # large/hard, N·m/rad (was 0.789 — mismeasured in N·m, not N·m/rad)
+SPRING_2 = 0.81    # medium — reference k2, N·m/rad (was 0.165 — mismeasured in N·m, not N·m/rad)
+SPRING_3 = 0.260   # small, N·m/rad — NOT re-measured; derived as old value x geometric
+                   # mean of the hard/medium correction ratios (sqrt(2.6616 x 4.9091) ~= 3.6145),
+                   # i.e. 0.072 x 3.6145 ~= 0.260, pending a real remeasurement (was 0.072 —
+                   # also mismeasured in N·m, not N·m/rad)
 
 # Sweep grid: log-spaced points BETWEEN adjacent springs, plus the 3 springs
 # themselves. Total grid size = 2 * SWEEP_N_PER_INTERVAL + 3.
@@ -276,7 +279,7 @@ GRIPPER_BLOCK_FRONT_X = -(MCP_CENTER[0] + BASE_LINK_LENGTH_MM) / 1000.0   # m
 LOAD_TEST_OBJECT_DIAMETER_MM = 84.0     # Ø of the grasped (duct-tape-wrapped) object
 LOAD_TEST_OBJECT_HEIGHT_MM = 80.0       # vertical-cylinder height (axis +Z, "rotated")
 LOAD_TEST_MOUNT_HEIGHT = 0.060          # m — finger-base/object-centre height (clears the floor)
-LOAD_TEST_APERTURE_INNER_MM = 77.0      # gap between the inner faces of the two base links
+LOAD_TEST_APERTURE_INNER_MM = 95.0      # gap between the inner faces of the two base links
 LOAD_TEST_CLOSE_DELTA_L_MM = 15.0       # tendon pull ΔL after tensioning, before pull-out
 LOAD_TEST_INIT_SPLAY_DEG = -20.0        # initial MCP extension so the straight fingers start
                                         #   OPEN around the Ø80 object (which is wider than the
@@ -405,24 +408,26 @@ PULL_MAX_DELTA_MM = 120.0               # pull-servo soft ΔL cap (string take-u
 # dashboard's selector reads this dict, and the chosen config's values are
 # logged per trial (k_mcp/k_pip/k_dip) so every CSV records which springs
 # produced it. Add or rename entries here as new spring combinations are tested.
+# Dominance convention: dominance is defined by STIFFNESS, not by which joint
+# bends the most — the dominant joint carries the HARD spring (SPRING_1), while
+# PIP is always the fixed/spectator joint at medium stiffness. Only the two
+# springs actually installed in recent hardware trials (medium + hard) are used.
 LOAD_TEST_STIFFNESS_CONFIGS = {
-    "Uniform — large (S1·S1·S1)":   (SPRING_1, SPRING_1, SPRING_1),
-    "Uniform — medium (S2·S2·S2)":  (SPRING_2, SPRING_2, SPRING_2),
-    "Uniform — small (S3·S3·S3)":   (SPRING_3, SPRING_3, SPRING_3),
-    "Graded stiff→soft (S1·S2·S3)": (SPRING_1, SPRING_2, SPRING_3),
-    "Graded soft→stiff (S3·S2·S1)": (SPRING_3, SPRING_2, SPRING_1),
+    "Uniform — medium (S2·S2·S2)":      (SPRING_2, SPRING_2, SPRING_2),
+    "Proximal-dominant (S1 MCP·S2·S2)": (SPRING_1, SPRING_2, SPRING_2),   # hard spring at MCP
+    "Distal-dominant (S2·S2·S1 DIP)":   (SPRING_2, SPRING_2, SPRING_1),   # hard spring at DIP
 }
 # Selection shown on dashboard startup (must be a key of the dict above).
 LOAD_TEST_STIFFNESS_DEFAULT = "Uniform — medium (S2·S2·S2)"
 
 # The 3 stiffness combinations run by the simulated load test
 # (gripper/stiffness_sweep.py --combos), mirroring the hardware trials: a uniform
-# baseline plus the proximal-stiff and distal-stiff graded sets. Each entry is a key
-# of LOAD_TEST_STIFFNESS_CONFIGS above.
+# baseline plus the proximal-dominant and distal-dominant graded sets. Each entry
+# is a key of LOAD_TEST_STIFFNESS_CONFIGS above.
 LOAD_TEST_STIFFNESS_COMBOS = (
     "Uniform — medium (S2·S2·S2)",
-    "Graded stiff→soft (S1·S2·S3)",   # proximal-stiff (MCP stiffest)
-    "Graded soft→stiff (S3·S2·S1)",   # distal-stiff (DIP stiffest)
+    "Proximal-dominant (S1 MCP·S2·S2)",
+    "Distal-dominant (S2·S2·S1 DIP)",
 )
 
 # -- Release detection ------------------------------------------------
