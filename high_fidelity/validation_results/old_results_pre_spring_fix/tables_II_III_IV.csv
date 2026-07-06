@@ -1,0 +1,41 @@
+TABLE II,,,,,,
+ANALYTICAL MODEL VS. MUJOCO: ABSOLUTE JOINT ANGLES (dL = 20 mm),,,,,,
+,,,,,,
+Case,theta1_ana (deg),theta1_sim (deg),theta2_ana (deg),theta2_sim (deg),theta3_ana (deg),theta3_sim (deg)
+Proximal-dominant,90.00,90.00,36.85,36.40,36.85,36.40
+Uniform,54.57,54.19,54.57,54.09,54.57,54.11
+Distal-dominant,36.85,36.27,36.85,36.27,90.00,90.00
+,,,,,,
+Max |e_theta1|: 0.58 deg,,Max |e_theta2|: 0.58 deg,,Max |e_theta3|: 0.46 deg,,
+,,,,,,
+,,,,,,
+TABLE III,,,,
+ANALYTICAL MODEL VS. MUJOCO: DIMENSIONLESS MORPHOLOGY METRICS (dL = 20 mm),,,,
+,,,,
+Case,M12_ana (theta1/theta2),M12_sim (theta1/theta2),M32_ana (theta3/theta2),M32_sim (theta3/theta2)
+Proximal-dominant,2.442,2.473,1.000,1.000
+Uniform,1.000,1.002,1.000,1.000
+Distal-dominant,1.000,1.000,2.442,2.481
+,,,,
+Max |e12|: 1.24%,,Max |e32|: 1.59%,,
+,,,,,,
+,,,,,,
+TABLE IV,,,,,
+MORPHOLOGY METRIC ERROR (%) VS. TENDON DISPLACEMENT dL,,,,,
+NEAR-CONSTANT ERRORS CONFIRM ANALYTICAL dL-INVARIANCE IN SIMULATION,,,,,
+,,,,,
+,dL (mm),,,,
+Case,10,15,20,25,
+,,,,,
+e12 (%),,,,,
+Proximal-dominant,7.88,7.84,1.24,1.24,
+Uniform,0.33,0.23,0.18,0.15,
+Distal-dominant,0.00,0.01,0.00,0.01,
+,,,,,
+e32 (%),,,,,
+Proximal-dominant,0.00,0.00,0.01,0.00,
+Uniform,0.02,0.03,0.03,0.03,
+Distal-dominant,7.94,7.95,1.59,1.85,
+,,,,,
+Max |e12| across all dL:,7.88%,,,,
+Max |e32| across all dL:,7.95%,,,,

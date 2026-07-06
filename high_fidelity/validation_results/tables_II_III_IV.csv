@@ -1,41 +1,13 @@
-TABLE II,,,,,,
-ANALYTICAL MODEL VS. MUJOCO: ABSOLUTE JOINT ANGLES (dL = 20 mm),,,,,,
-,,,,,,
-Case,theta1_ana (deg),theta1_sim (deg),theta2_ana (deg),theta2_sim (deg),theta3_ana (deg),theta3_sim (deg)
-Proximal-dominant,90.00,90.00,36.85,36.40,36.85,36.40
-Uniform,54.57,54.19,54.57,54.09,54.57,54.11
-Distal-dominant,36.85,36.27,36.85,36.27,90.00,90.00
-,,,,,,
-Max |e_theta1|: 0.58 deg,,Max |e_theta2|: 0.58 deg,,Max |e_theta3|: 0.46 deg,,
-,,,,,,
-,,,,,,
-TABLE III,,,,
-ANALYTICAL MODEL VS. MUJOCO: DIMENSIONLESS MORPHOLOGY METRICS (dL = 20 mm),,,,
-,,,,
-Case,M12_ana (theta1/theta2),M12_sim (theta1/theta2),M32_ana (theta3/theta2),M32_sim (theta3/theta2)
-Proximal-dominant,2.442,2.473,1.000,1.000
-Uniform,1.000,1.002,1.000,1.000
-Distal-dominant,1.000,1.000,2.442,2.481
-,,,,
-Max |e12|: 1.24%,,Max |e32|: 1.59%,,
-,,,,,,
-,,,,,,
-TABLE IV,,,,,
-MORPHOLOGY METRIC ERROR (%) VS. TENDON DISPLACEMENT dL,,,,,
-NEAR-CONSTANT ERRORS CONFIRM ANALYTICAL dL-INVARIANCE IN SIMULATION,,,,,
-,,,,,
-,dL (mm),,,,
-Case,10,15,20,25,
-,,,,,
-e12 (%),,,,,
-Proximal-dominant,7.88,7.84,1.24,1.24,
-Uniform,0.33,0.23,0.18,0.15,
-Distal-dominant,0.00,0.01,0.00,0.01,
-,,,,,
-e32 (%),,,,,
-Proximal-dominant,0.00,0.00,0.01,0.00,
-Uniform,0.02,0.03,0.03,0.03,
-Distal-dominant,7.94,7.95,1.59,1.85,
-,,,,,
-Max |e12| across all dL:,7.88%,,,,
-Max |e32| across all dL:,7.95%,,,,
+delta_L_mm,regime,theta1_ana_deg,theta2_ana_deg,theta3_ana_deg,theta1_sim_deg,theta2_sim_deg,theta3_sim_deg,M12_ana,M12_sim,M12_err_pct,M32_ana,M32_sim,M32_err_pct
+10,Proximal-dominant,9.8000,28.8200,28.8200,9.4400,27.6600,27.6700,0.339900,0.341200,0.3900,1.000000,1.000300,0.0300
+10,Uniform,22.8700,22.8700,22.8700,22.1200,22.1100,22.1200,1.000000,1.000300,0.0300,1.000000,1.000400,0.0400
+10,Distal-dominant,28.8200,28.8200,9.8000,27.6700,27.6600,9.4400,1.000000,1.000300,0.0300,0.339900,0.341200,0.3900
+15,Proximal-dominant,13.5113,41.0365,41.0365,18.5659,48.1276,48.1271,0.329250,0.385765,17.1646,1.000000,0.999989,0.0011
+15,Uniform,32.4969,32.4969,32.4969,38.7927,38.7862,38.7858,1.000000,1.000167,0.0167,1.000000,0.999990,0.0010
+15,Distal-dominant,41.0365,41.0365,13.5113,48.1323,48.1245,18.5639,1.000000,1.000162,0.0162,0.329250,0.385747,17.1594
+20,Proximal-dominant,16.9931,52.6011,52.6011,24.7536,64.1685,64.1720,0.323056,0.385760,19.4094,1.000000,1.000054,0.0054
+20,Uniform,41.5170,41.5170,41.5170,51.7221,51.7152,51.7156,1.000000,1.000133,0.0133,1.000000,1.000007,0.0007
+20,Distal-dominant,52.6011,52.6011,16.9931,64.1751,64.1674,24.7518,1.000000,1.000121,0.0121,0.323056,0.385739,19.4028
+25,Proximal-dominant,20.4289,63.8130,63.8130,30.9406,80.2101,80.2171,0.320137,0.385745,20.4939,1.000000,1.000088,0.0088
+25,Uniform,50.1759,50.1759,50.1759,64.6515,64.6444,64.6453,1.000000,1.000111,0.0111,1.000000,1.000015,0.0015
+25,Distal-dominant,63.8130,63.8130,20.4289,80.2180,80.2102,30.9398,1.000000,1.000098,0.0098,0.320137,0.385734,20.4903
