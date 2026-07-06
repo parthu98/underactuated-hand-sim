@@ -59,14 +59,14 @@ PROJECT_MEMORY.md
 # GitHub refresh trigger marker (not source)
 .github_refresh
 
-# Common Scripts (finger-sweep CV pipeline): raw videos + all generated
+# finger_sweep_cv (finger-sweep CV pipeline): raw videos + all generated
 # outputs (tracking caches, rendered mp4s) live in a local, auto-created
-# folder here, never in git -- see Common Scripts/README.md. The finished
+# folder here, never in git -- see finger_sweep_cv/README.md. The finished
 # dataset lives on Google Drive instead.
-Common Scripts/Finger Sweep Videos/
+finger_sweep_cv/Finger Sweep Videos/
 
-# ...but DO track Common Scripts' own VS Code interpreter setting, unlike the
+# ...but DO track finger_sweep_cv's own VS Code interpreter setting, unlike the
 # repo-wide .vscode/ (personal IDE prefs) ignored above -- this one is meant
 # to be shared so a fresh clone points at the right venv automatically.
-!Common Scripts/.vscode/
-!Common Scripts/.vscode/settings.json
+!finger_sweep_cv/.vscode/
+!finger_sweep_cv/.vscode/settings.json

@@ -40,7 +40,7 @@ The high-fidelity finger model is the foundation for the two-finger gripper work
 ## Repository layout
 
 Folders with their own `README.md` (`gripper/`, `hardware/`, `mocap/`, `legacy/`,
-`Common Scripts/`) carry the in-folder detail; the tree below is the one-line map.
+`finger_sweep_cv/`) carry the in-folder detail; the tree below is the one-line map.
 
 ```text
 underactuated_finger/
@@ -92,10 +92,10 @@ underactuated_finger/
 │
 ├── legacy/                  # Initial low-fidelity model + early research outputs (reference)
 │
-├── Common Scripts/          # Markerless CV pipeline: joint angles + fingertip trajectory
+├── finger_sweep_cv/         # Markerless CV pipeline: joint angles + fingertip trajectory
 │   │                        #   from finger-sweep video, for the RAL 2026 paper. Fully
 │   │                        #   self-contained (own venv/requirements.txt) -- doesn't touch
-│   │                        #   config.py or the MuJoCo stack. See Common Scripts/README.md.
+│   │                        #   config.py or the MuJoCo stack. See finger_sweep_cv/README.md.
 │   ├── track_points.py          # The one interactive step: click 5 points, LK-track 4,
 │   │                            #   derive the tip via a per-frame tip-cap circle fit
 │   ├── render_joint_overlay.py / render_tip_trajectory.py / render_angle_chart.py
