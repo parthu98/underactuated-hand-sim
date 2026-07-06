@@ -68,7 +68,7 @@ an anthropomorphic 3-joint (MCP / PIP / DIP) model, plus a hardware-validation r
   `Dashboard`, reusing servo/logger/predictor/joints/auto-sweep verbatim),
   `calibrate.py`, and `mocap_config.py` (mocap-only knobs; physical params still
   come from root `config.py`). Results write to `mocap/results/`.
-- **Finger-sweep CV pipeline:** `Common Scripts/` — markerless computer-vision
+- **Finger-sweep CV pipeline:** `finger_sweep_cv/` — markerless computer-vision
   pipeline (separate venv/requirements.txt, doesn't touch `config.py` or the
   MuJoCo stack) that extracts 2D joint angles + fingertip-trajectory/workspace
   data from video of a mechanical finger sweep, for the RAL 2026 paper.
@@ -82,7 +82,7 @@ an anthropomorphic 3-joint (MCP / PIP / DIP) model, plus a hardware-validation r
   rather than `cv2.VideoWriter` directly, because OpenCV's own H.264 path has
   no bitrate control and bloats file size ~3x for no quality gain. Raw videos
   and all generated outputs live in a local, git-ignored `Finger Sweep Videos\`
-  folder created on demand (see `Common Scripts/README.md`); the current
+  folder created on demand (see `finger_sweep_cv/README.md`); the current
   dataset is archived on Google Drive instead of committed here.
 
 When finger geometry or mechanics change, update **both** the high-fidelity model

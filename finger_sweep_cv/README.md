@@ -1,4 +1,4 @@
-# Finger Sweep Video Analysis — Common Scripts
+# Finger Sweep Video Analysis
 
 Markerless computer-vision pipeline that extracts 2D joint angles and
 fingertip-trajectory/workspace data from video of a mechanical finger sweep,
@@ -115,7 +115,7 @@ path before running — every script picks it up via `run_all.VIDEOS_DIR`.
 ## Setup
 
 ```powershell
-cd "C:\Users\namit\Documents\IITgn\underactuated finger\Common Scripts"
+cd "C:\Users\namit\Documents\IITgn\underactuated finger\finger_sweep_cv"
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
@@ -139,7 +139,7 @@ docstring for the full diagnosis.
 
 **You do not need to activate the venv or pick the right interpreter** —
 every script starts with a bootstrap check (`_bootstrap.py`) that transparently
-relaunches itself under `Common Scripts\.venv\Scripts\python.exe` if it isn't
+relaunches itself under `finger_sweep_cv\.venv\Scripts\python.exe` if it isn't
 already running there. This means double-clicking a script, running it from
 an IDE's "Run" button (whatever interpreter the IDE defaults to), or calling
 `python foo.py` from a plain unactivated terminal all just work. A
@@ -170,6 +170,18 @@ This is interactive — a click window pops up for each raw video found in
 dropped there gets picked up automatically, no code edit needed. Add
 `--only <stem>` to process a single case, or `--skip-tracking` to reuse an
 existing `data\<stem>_points.npz` cache instead of re-clicking.
+
+To process a video that isn't already sitting in `Finger Sweep Videos\raw\`
+(e.g. a fresh recording still living in Downloads or on a memory card), skip
+the manual copy step and point `run_all.py` straight at it:
+```powershell
+python run_all.py --video "C:\path\to\some_video.mp4" --label "My new case"
+```
+This copies the file into `raw\` under its own filename stem (refusing to
+clobber an existing raw video of the same name) and then runs the normal
+pipeline on it. `--label` is optional — it only affects the progress-print
+header; omit it and the stem itself is used. `--video` and `--only` are
+mutually exclusive.
 
 **Per-script, one case at a time** (useful while iterating on a single video):
 
@@ -226,7 +238,7 @@ re-derives just the tip column in place (a few seconds per video, no UI).
 ## Script-by-script notes
 
 - **`_bootstrap.py`** — no CLI, stdlib-only. `ensure_venv()` re-launches the
-  calling script under `Common Scripts\.venv\Scripts\python.exe` if it isn't
+  calling script under `finger_sweep_cv\.venv\Scripts\python.exe` if it isn't
   already running there. Imported as the first real statement (after the
   module docstring and the mandatory `from __future__ import annotations`)
   in every other script in this folder. Uses `subprocess.run` + `sys.exit`
